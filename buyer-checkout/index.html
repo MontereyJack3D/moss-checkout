@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>MOSS Checkout — Peptide Partners</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#0E1B17',
+          moss: { 50:'#f0f7f3', 100:'#dceee4', 500:'#1f7a5a', 600:'#176349', 700:'#114e3a' },
+          sand: '#F7F6F2',
+        },
+        fontFamily: { sans: ['-apple-system','BlinkMacSystemFont','Inter','Segoe UI','Roboto','sans-serif'] },
+        boxShadow: { card: '0 1px 2px rgba(14,27,23,.04), 0 12px 40px -12px rgba(14,27,23,.18)' },
+      }
+    }
+  }
+</script>
+<style>
+  html,body{height:100%}
+  body{background:#e9ebe7;-webkit-font-smoothing:antialiased}
+  .stage{background:radial-gradient(1200px 600px at 50% -10%, #f4f6f2, #e4e7e1)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .anim{animation:fadeUp .28s ease both}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spin{animation:spin .8s linear infinite}
+  @keyframes pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+  .pop{animation:pop .45s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes bar{from{width:0}to{width:100%}}
+  .bar{animation:bar 2.6s ease forwards}
+  .tap{transition:transform .08s ease, box-shadow .2s ease}
+  .tap:active{transform:scale(.985)}
+  input:focus{outline:none}
+  ::placeholder{color:#9aa39d}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/plain" id="appsrc">
+const { useState, useEffect, useRef } = React;
+
+/* ---------- tiny UI atoms ---------- */
+const Lock = (p)=>(<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" {...p}><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>);
+const Check = (p)=>(<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 6 9 17l-5-5"/></svg>);
+const Chevron = (p)=>(<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="m9 18 6-6-6-6"/></svg>);
+const Back = ({onClick})=>(<button onClick={onClick} className="text-ink/40 hover:text-ink/70 -ml-1 p-1 rounded-lg tap" aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg></button>);
+
+function Spinner({size=18,cls="text-white"}){
+  return <span className={`inline-block rounded-full border-2 border-white/30 border-t-white spin ${cls}`} style={{width:size,height:size}}/>;
+}
+
+function PrimaryBtn({children,onClick,disabled,loading}){
+  return (
+    <button onClick={onClick} disabled={disabled||loading}
+      className="tap w-full h-[52px] rounded-xl bg-moss-600 hover:bg-moss-700 disabled:opacity-40 text-white font-semibold text-[15px] flex items-center justify-center gap-2 shadow-sm">
+      {loading ? <Spinner/> : children}
+    </button>
+  );
+}
+
+/* merchant + product fixtures */
+const MERCHANT = { name:'Peptide Partners', tag:'Research-use-only supplies' };
+const ITEMS = [
+  { id:1, name:'BPC-157 · 5mg', meta:'Lyophilized · research only', qty:2, price:42.00, emoji:'🧪' },
+  { id:2, name:'Bacteriostatic Water · 30ml', meta:'Sterile diluent', qty:1, price:14.00, emoji:'💧' },
+];
+const SUBTOTAL = ITEMS.reduce((s,i)=>s+i.price*i.qty,0);
+const SHIP = 6.5;
+const TOTAL = SUBTOTAL + SHIP;
+const money = (n)=>'$'+n.toFixed(2);
+
+/* ---------- shell / hosted-checkout chrome ---------- */
+function Shell({step, children, onBack}){
+  return (
+    <div className="min-h-screen stage flex flex-col items-center px-4 py-6 sm:py-10">
+      <div className="w-full max-w-[440px]">
+        {/* merchant header */}
+        <div className="flex items-center gap-3 mb-4 px-1">
+          <div className="w-9 h-9 rounded-xl bg-moss-600 text-white grid place-items-center font-bold">P</div>
+          <div className="leading-tight">
+            <div className="font-semibold text-ink text-[15px]">{MERCHANT.name}</div>
+            <div className="text-[11px] text-ink/45">{MERCHANT.tag}</div>
+          </div>
+          <div className="ml-auto flex items-center gap-1 text-[11px] text-ink/45">
+            <Lock/> Secure checkout
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-card overflow-hidden">
+          {onBack && (
+            <div className="px-5 pt-4"><Back onClick={onBack}/></div>
+          )}
+          <div className="px-5 pb-6 pt-2 sm:px-7">{children}</div>
+        </div>
+
+        {/* footer trust */}
+        <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-ink/40">
+          <Lock/> Secured by <span className="font-semibold text-ink/55">MOSS</span>
+          <span className="mx-1">·</span> We never store full card numbers
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================= STEPS */
+
+/* 1. CART */
+function Cart({next}){
+  return (
+    <div className="anim">
+      <h1 className="text-[22px] font-bold text-ink mb-1">Your bag</h1>
+      <p className="text-[13px] text-ink/50 mb-5">{ITEMS.length} items from {MERCHANT.name}</p>
+      <div className="space-y-3 mb-5">
+        {ITEMS.map(it=>(
+          <div key={it.id} className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-sand grid place-items-center text-2xl">{it.emoji}</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-semibold text-ink truncate">{it.name}</div>
+              <div className="text-[12px] text-ink/45">{it.meta} · Qty {it.qty}</div>
+            </div>
+            <div className="text-[14px] font-semibold text-ink">{money(it.price*it.qty)}</div>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-ink/8 pt-4 space-y-2 text-[13px]">
+        <Row l="Subtotal" r={money(SUBTOTAL)}/>
+        <Row l="Shipping" r={money(SHIP)}/>
+        <div className="flex justify-between pt-2 text-[16px] font-bold text-ink">
+          <span>Total</span><span>{money(TOTAL)}</span>
+        </div>
+      </div>
+      <div className="mt-6"><PrimaryBtn onClick={next}>Checkout · {money(TOTAL)}</PrimaryBtn></div>
+      <p className="text-center text-[11px] text-ink/40 mt-3">Research-use-only. Not for human consumption.</p>
+    </div>
+  );
+}
+const Row = ({l,r})=>(<div className="flex justify-between text-ink/60"><span>{l}</span><span className="text-ink/80">{r}</span></div>);
+
+/* 2/3. SIGN IN */
+function SignIn({onSignedIn}){
+  const [mode,setMode]=useState('choose'); // choose | email | code | provisioning
+  const [email,setEmail]=useState('chris@example.com');
+  const [code,setCode]=useState(['','','','','','']);
+  const [provider,setProvider]=useState(null);
+  const [codeErr,setCodeErr]=useState('');
+  const codeRefs=useRef([]);
+
+  const provision = (label)=>{ setProvider(label); setMode('provisioning');
+    setTimeout(()=>onSignedIn(email), 850); };
+
+  const submitCode = ()=>{
+    const v=code.join('');
+    if(v==='000000'){ setCodeErr('That code expired. Send a new one.'); return; }
+    provision('email');
+  };
+
+  if(mode==='provisioning'){
+    return (
+      <div className="anim py-8 text-center">
+        <div className="mx-auto mb-5"><Spinner size={34} cls=""/><span className="sr-only">loading</span></div>
+        <div className="mx-auto w-9 h-9 rounded-full border-2 border-moss-100 border-t-moss-600 spin mb-5"/>
+        <h2 className="text-[18px] font-bold text-ink">Setting up your secure account…</h2>
+        <p className="text-[13px] text-ink/50 mt-1">One moment — this only happens the first time.</p>
+      </div>
+    );
+  }
+
+  if(mode==='code'){
+    return (
+      <div className="anim">
+        <h1 className="text-[22px] font-bold text-ink mb-1">Enter your code</h1>
+        <p className="text-[13px] text-ink/50 mb-5">We sent a 6-digit code to <span className="text-ink/80 font-medium">{email}</span>.</p>
+        <div className="flex gap-2 justify-between mb-2">
+          {code.map((c,i)=>(
+            <input key={i} ref={el=>codeRefs.current[i]=el} inputMode="numeric" maxLength={1} value={c}
+              onChange={e=>{const v=e.target.value.replace(/\D/,''); const nc=[...code]; nc[i]=v; setCode(nc); setCodeErr('');
+                if(v&&i<5) codeRefs.current[i+1]?.focus();}}
+              onKeyDown={e=>{if(e.key==='Backspace'&&!code[i]&&i>0) codeRefs.current[i-1]?.focus();}}
+              className={`w-full h-14 text-center text-[20px] font-semibold rounded-xl border ${codeErr?'border-red-400 bg-red-50':'border-ink/15 focus:border-moss-600'} bg-sand`}/>
+          ))}
+        </div>
+        {codeErr && <p className="text-[12px] text-red-500 mb-2">{codeErr}</p>}
+        <p className="text-[12px] text-ink/40 mb-5">Didn’t get it? <button className="text-moss-600 font-medium" onClick={()=>{setCode(['','','','','','']);setCodeErr('');}}>Resend code</button> <span className="text-ink/30">· tip: 000000 shows the expired-code state</span></p>
+        <PrimaryBtn onClick={submitCode} disabled={code.join('').length<6}>Continue</PrimaryBtn>
+      </div>
+    );
+  }
+
+  if(mode==='email'){
+    return (
+      <div className="anim">
+        <h1 className="text-[22px] font-bold text-ink mb-1">Sign in to your secure account</h1>
+        <p className="text-[13px] text-ink/50 mb-5">We’ll email you a one-time code. No password needed.</p>
+        <label className="block text-[12px] font-medium text-ink/60 mb-1">Email</label>
+        <input autoFocus value={email} onChange={e=>setEmail(e.target.value)} type="email"
+          className="w-full h-[52px] rounded-xl border border-ink/15 focus:border-moss-600 bg-sand px-4 text-[15px] mb-5"/>
+        <PrimaryBtn onClick={()=>{setMode('code'); setTimeout(()=>codeRefs.current[0]?.focus(),50);}} disabled={!email.includes('@')}>Send code</PrimaryBtn>
+      </div>
+    );
+  }
+
+  // choose
+  return (
+    <div className="anim">
+      <h1 className="text-[22px] font-bold text-ink mb-1">Sign in to complete checkout</h1>
+      <p className="text-[13px] text-ink/50 mb-5">Your details stay in one secure account, so next time is one tap.</p>
+      <div className="space-y-2.5">
+        <SignBtn onClick={()=>provision('passkey')} icon="passkey" label="Continue with a passkey" sub="Face ID / Touch ID — fastest"/>
+        <SignBtn onClick={()=>provision('apple')} icon="apple" label="Continue with Apple"/>
+        <SignBtn onClick={()=>provision('google')} icon="google" label="Continue with Google"/>
+        <div className="flex items-center gap-3 py-1 text-[11px] text-ink/35"><span className="flex-1 h-px bg-ink/10"/>or<span className="flex-1 h-px bg-ink/10"/></div>
+        <SignBtn onClick={()=>setMode('email')} icon="mail" label="Continue with email"/>
+      </div>
+      <p className="text-center text-[11px] text-ink/40 mt-5">By continuing you agree to {MERCHANT.name}’s terms. Your sign-in is protected by MOSS.</p>
+    </div>
+  );
+}
+
+function SignBtn({onClick,icon,label,sub}){
+  const icons = {
+    apple:<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16.7 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.8-3-.8C7.3 7.5 6 8.4 5.3 9.8c-1.6 2.8-.4 6.9 1.1 9.2.7 1.1 1.6 2.3 2.8 2.3 1.1 0 1.5-.7 2.9-.7s1.7.7 2.9.7 2-1.1 2.7-2.1c.8-1.2 1.2-2.3 1.2-2.4-.1 0-2.2-.9-2.2-3.1zM14.5 6.1c.6-.8 1-1.8.9-2.9-.9 0-2 .6-2.6 1.3-.6.6-1.1 1.7-.9 2.7 1 .1 2-.4 2.6-1.1z"/></svg>,
+    google:<svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2-1.9 3.3-4.7 3.3-7.9z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.5-2.7c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.6H2v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.7 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.6l3.1-3.1A11 11 0 0 0 2 7.1l3.7 2.8C6.6 7.3 9.1 5.4 12 5.4z"/></svg>,
+    mail:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>,
+    passkey:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="9" r="4"/><path d="M9 13c-3 0-5 2-5 4v2h7"/><circle cx="17" cy="14" r="2"/><path d="M17 16v5l1.5-1.5L20 21v-5"/></svg>,
+  };
+  return (
+    <button onClick={onClick} className="tap w-full h-[52px] rounded-xl border border-ink/12 hover:border-ink/25 bg-white flex items-center gap-3 px-4 text-left">
+      <span className="text-ink">{icons[icon]}</span>
+      <span className="flex-1">
+        <span className="block text-[14px] font-semibold text-ink leading-tight">{label}</span>
+        {sub && <span className="block text-[11px] text-ink/45">{sub}</span>}
+      </span>
+      <Chevron className="text-ink/25"/>
+    </button>
+  );
+}
+
+/* 4/5. SHIPPING */
+function Shipping({email,next}){
+  const [f,setF]=useState({name:'Chris Rivers',addr:'',city:'',state:'',zip:'',phone:''});
+  const [save,setSave]=useState(true);
+  const [touched,setTouched]=useState(false);
+  const ok = f.name && f.addr && f.city && f.zip;
+  const set=(k)=>(e)=>setF({...f,[k]:e.target.value});
+  return (
+    <div className="anim">
+      <div className="flex items-center gap-2 mb-1">
+        <h1 className="text-[22px] font-bold text-ink">Shipping details</h1>
+      </div>
+      <p className="text-[13px] text-ink/50 mb-5">Signed in as <span className="text-ink/80 font-medium">{email}</span></p>
+      <div className="space-y-3">
+        <Field label="Full name" value={f.name} onChange={set('name')} err={touched&&!f.name}/>
+        <Field label="Address" placeholder="Street address" value={f.addr} onChange={set('addr')} err={touched&&!f.addr}/>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="City" value={f.city} onChange={set('city')} err={touched&&!f.city}/>
+          <Field label="State" value={f.state} onChange={set('state')}/>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="ZIP" value={f.zip} onChange={set('zip')} err={touched&&!f.zip} inputMode="numeric"/>
+          <Field label="Phone (optional)" value={f.phone} onChange={set('phone')} inputMode="tel"/>
+        </div>
+      </div>
+      <label className="flex items-start gap-3 mt-4 cursor-pointer select-none">
+        <input type="checkbox" checked={save} onChange={e=>setSave(e.target.checked)} className="mt-0.5 w-5 h-5 accent-moss-600 rounded"/>
+        <span className="text-[13px] text-ink/70 leading-snug">Save my details securely for faster checkout next time.</span>
+      </label>
+      <div className="mt-6">
+        <PrimaryBtn onClick={()=>{ if(!ok){setTouched(true);return;} next(); }}>Continue to payment</PrimaryBtn>
+      </div>
+    </div>
+  );
+}
+function Field({label,err,...p}){
+  return (
+    <label className="block">
+      <span className="block text-[12px] font-medium text-ink/60 mb-1">{label}</span>
+      <input {...p} className={`w-full h-[48px] rounded-xl border bg-sand px-4 text-[15px] ${err?'border-red-400':'border-ink/15 focus:border-moss-600'}`}/>
+    </label>
+  );
+}
+
+/* 6. PAYMENT */
+function Payment({pay}){
+  const [showMore,setShowMore]=useState(false);
+  const [cardOpen,setCardOpen]=useState(false);
+  const [declineDemo,setDeclineDemo]=useState(false);
+  const [card,setCard]=useState({num:'4242 4242 4242 4242',exp:'04/28',cvc:'123'});
+
+  return (
+    <div className="anim">
+      <h1 className="text-[22px] font-bold text-ink mb-1">Payment</h1>
+      <p className="text-[13px] text-ink/50 mb-5">Choose how you’d like to pay {money(TOTAL)}.</p>
+
+      {/* express */}
+      <button onClick={()=>pay({method:'Apple Pay',decline:false})}
+        className="tap w-full h-[52px] rounded-xl bg-black text-white font-semibold flex items-center justify-center gap-2 mb-2.5">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16.7 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.8-3-.8C7.3 7.5 6 8.4 5.3 9.8c-1.6 2.8-.4 6.9 1.1 9.2.7 1.1 1.6 2.3 2.8 2.3 1.1 0 1.5-.7 2.9-.7s1.7.7 2.9.7 2-1.1 2.7-2.1c.8-1.2 1.2-2.3 1.2-2.4-.1 0-2.2-.9-2.2-3.1z"/></svg>
+        Pay
+      </button>
+      <button onClick={()=>pay({method:'Google Pay',decline:false})}
+        className="tap w-full h-[52px] rounded-xl bg-white border border-ink/15 hover:border-ink/30 font-semibold flex items-center justify-center gap-2 mb-4">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2-1.9 3.3-4.7 3.3-7.9z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.5-2.7c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.6H2v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.7 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.6l3.1-3.1A11 11 0 0 0 2 7.1l3.7 2.8C6.6 7.3 9.1 5.4 12 5.4z"/></svg>
+        Pay
+      </button>
+
+      <div className="flex items-center gap-3 mb-4 text-[11px] text-ink/35"><span className="flex-1 h-px bg-ink/10"/>or pay another way<span className="flex-1 h-px bg-ink/10"/></div>
+
+      {/* card */}
+      <button onClick={()=>setCardOpen(!cardOpen)} className="tap w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3 mb-2.5">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink/70"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        <span className="flex-1 text-left text-[14px] font-semibold text-ink">Credit or debit card</span>
+        <Chevron className={`text-ink/30 transition-transform ${cardOpen?'rotate-90':''}`}/>
+      </button>
+      {cardOpen && (
+        <div className="anim rounded-xl bg-sand p-4 mb-2.5 space-y-3">
+          <Field label="Card number" value={card.num} onChange={e=>setCard({...card,num:e.target.value})} inputMode="numeric"/>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Expiry" value={card.exp} onChange={e=>setCard({...card,exp:e.target.value})}/>
+            <Field label="CVC" value={card.cvc} onChange={e=>setCard({...card,cvc:e.target.value})} inputMode="numeric"/>
+          </div>
+          <label className="flex items-center gap-2 text-[12px] text-ink/55">
+            <input type="checkbox" checked={declineDemo} onChange={e=>setDeclineDemo(e.target.checked)} className="w-4 h-4 accent-red-500"/>
+            Simulate a declined payment (demo)
+          </label>
+          <PrimaryBtn onClick={()=>pay({method:`Visa ···· ${card.num.slice(-4)}`,decline:declineDemo})}>Pay {money(TOTAL)}</PrimaryBtn>
+        </div>
+      )}
+
+      {/* paypal */}
+      <button onClick={()=>pay({method:'PayPal',decline:false})} className="tap w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3 mb-2.5">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="#003087"><path d="M7 21h2.5l.5-3h2.8c3.3 0 5.7-1.6 6.4-5 .5-2.4-.6-4-2.8-4H10c-.5 0-.9.3-1 .8L7 21z"/><path fill="#009cde" d="M9 17h2.8c3.3 0 5.7-1.6 6.4-5 .1-.4.1-.8.1-1.1-.6-.3-1.4-.5-2.3-.5H11c-.5 0-.9.3-1 .8L9 17z" opacity=".7"/></svg>
+        <span className="flex-1 text-left text-[14px] font-semibold text-ink">PayPal</span>
+        <Chevron className="text-ink/30"/>
+      </button>
+
+      {/* advanced: crypto hidden */}
+      <button onClick={()=>setShowMore(!showMore)} className="w-full text-center text-[12px] text-ink/45 hover:text-ink/70 py-2">
+        {showMore?'Hide':'More ways to pay'}
+      </button>
+      {showMore && (
+        <div className="anim">
+          <button onClick={()=>pay({method:'Stablecoin balance',decline:false})} className="tap w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink/70"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5h4.5a1.5 1.5 0 0 1 0 3H10a1.5 1.5 0 0 0 0 3H15"/></svg>
+            <span className="flex-1 text-left">
+              <span className="block text-[14px] font-semibold text-ink">Pay with a stablecoin balance</span>
+              <span className="block text-[11px] text-ink/45">Advanced · for buyers who already hold one</span>
+            </span>
+            <Chevron className="text-ink/30"/>
+          </button>
+        </div>
+      )}
+
+      <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-ink/40"><Lock/> Encrypted and protected by MOSS</div>
+    </div>
+  );
+}
+
+/* 7. PROCESSING */
+function Processing({onDone,onDecline,decline}){
+  const [phase,setPhase]=useState(0);
+  const phases=['Processing your payment…','Confirming your order…','Almost done…'];
+  useEffect(()=>{
+    if(decline){ const t=setTimeout(onDecline,1700); return ()=>clearTimeout(t); }
+    const t1=setTimeout(()=>setPhase(1),1100);
+    const t2=setTimeout(()=>setPhase(2),2100);
+    const t3=setTimeout(onDone,2900);
+    return ()=>[t1,t2,t3].forEach(clearTimeout);
+  },[]);
+  return (
+    <div className="anim py-10 text-center">
+      <div className="mx-auto w-12 h-12 rounded-full border-[3px] border-moss-100 border-t-moss-600 spin mb-6"/>
+      <h2 className="text-[18px] font-bold text-ink">{decline?'Processing your payment…':phases[phase]}</h2>
+      <p className="text-[13px] text-ink/50 mt-1.5">Please keep this page open.</p>
+      <div className="mt-6 mx-auto max-w-[220px] h-1 rounded-full bg-ink/8 overflow-hidden">
+        <div className="h-full bg-moss-600 bar"/>
+      </div>
+    </div>
+  );
+}
+
+/* decline state */
+function Declined({retry}){
+  return (
+    <div className="anim py-6 text-center">
+      <div className="mx-auto w-12 h-12 rounded-full bg-red-50 text-red-500 grid place-items-center mb-4 pop">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </div>
+      <h2 className="text-[19px] font-bold text-ink mb-1">Your payment didn’t go through</h2>
+      <p className="text-[13px] text-ink/55 mb-6 max-w-[300px] mx-auto">No charge was made. Try another payment method to complete your order.</p>
+      <PrimaryBtn onClick={retry}>Try another method</PrimaryBtn>
+    </div>
+  );
+}
+
+/* 8. CONFIRMATION */
+function Confirmation({email,method,reset}){
+  const [details,setDetails]=useState(false);
+  const order='PP-'+Math.random().toString(36).slice(2,7).toUpperCase();
+  const ref='mref_'+Math.random().toString(36).slice(2,12);
+  return (
+    <div className="anim text-center">
+      <div className="mx-auto w-14 h-14 rounded-full bg-moss-50 text-moss-600 grid place-items-center mb-4 pop"><Check/></div>
+      <h1 className="text-[22px] font-bold text-ink">Payment confirmed</h1>
+      <p className="text-[13px] text-ink/55 mt-1.5 mb-6">Thanks, Chris. We’ve emailed your receipt to <span className="text-ink/80 font-medium">{email}</span>.</p>
+
+      <div className="text-left rounded-2xl bg-sand p-4 space-y-2.5 mb-4">
+        <KV k="Order number" v={order}/>
+        <KV k="Total paid" v={money(TOTAL)}/>
+        <KV k="Payment method" v={method}/>
+        <KV k="Estimated delivery" v="3–5 business days"/>
+      </div>
+
+      <button onClick={()=>setDetails(!details)} className="text-[12px] text-ink/45 hover:text-ink/70 inline-flex items-center gap-1 mb-2">
+        Payment details <Chevron className={`transition-transform ${details?'rotate-90':''}`}/>
+      </button>
+      {details && (
+        <div className="anim text-left rounded-2xl border border-ink/8 p-4 space-y-2.5 mb-4">
+          <KV k="Amount charged" v={`${money(TOTAL)} USD`}/>
+          <KV k="Date" v="Jun 11, 2026"/>
+          <KV k="Order ID" v={order}/>
+          <KV k="Payment reference" v={ref}/>
+          <KV k="Processor" v="Card network partner"/>
+          <KV k="Secure account" v={email}/>
+          <button className="text-[12px] text-moss-600 font-medium pt-1">Download receipt (PDF)</button>
+        </div>
+      )}
+
+      <div className="space-y-2.5 mt-2">
+        <PrimaryBtn onClick={reset}>Continue shopping</PrimaryBtn>
+        <button onClick={reset} className="w-full h-[48px] text-[14px] font-medium text-ink/60 hover:text-ink">View order status</button>
+      </div>
+    </div>
+  );
+}
+const KV=({k,v})=>(<div className="flex justify-between gap-4 text-[13px]"><span className="text-ink/50">{k}</span><span className="text-ink/85 font-medium text-right break-all">{v}</span></div>);
+
+/* ============================================================= APP */
+function App(){
+  const [step,setStep]=useState('cart');
+  const [email,setEmail]=useState('');
+  const [payInfo,setPayInfo]=useState({method:'',decline:false});
+
+  const reset=()=>{setStep('cart');setEmail('');};
+
+  return (
+    <Shell onBack={['signin','shipping','payment'].includes(step) ? ()=>{
+      setStep(step==='signin'?'cart':step==='shipping'?'signin':'shipping');
+    } : null}>
+      {step==='cart' && <Cart next={()=>setStep('signin')}/>}
+      {step==='signin' && <SignIn onSignedIn={(e)=>{setEmail(e);setStep('shipping');}}/>}
+      {step==='shipping' && <Shipping email={email||'chris@example.com'} next={()=>setStep('payment')}/>}
+      {step==='payment' && <Payment pay={(info)=>{setPayInfo(info);setStep('processing');}}/>}
+      {step==='processing' && <Processing decline={payInfo.decline} onDone={()=>setStep('done')} onDecline={()=>setStep('declined')}/>}
+      {step==='declined' && <Declined retry={()=>setStep('payment')}/>}
+      {step==='done' && <Confirmation email={email||'chris@example.com'} method={payInfo.method} reset={reset}/>}
+    </Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<script>
+  /* Force the classic JSX runtime so this works as a plain, double-clickable
+     file. (Latest @babel/standalone defaults to the automatic runtime, which
+     emits a bare `import` that can't run in a classic <script>.) */
+  (function () {
+    var src = document.getElementById('appsrc').textContent;
+    var out = Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] }).code;
+    (0, eval)(out);
+  })();
+</script>
+</body>
+</html>

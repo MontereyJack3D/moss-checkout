@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MOSS Checkout × Peptide Partners — Digital One-Pager</title>
+<style>
+  :root{
+    --ink:#0E1B17; --sub:#5b6b63; --moss:#176349; --moss500:#1f7a5a;
+    --moss50:#f0f7f3; --moss100:#dceee4; --sand:#F7F6F2; --line:#e7eae6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,sans-serif;
+    color:var(--ink);-webkit-font-smoothing:antialiased;background:transparent;padding:18px;
+  }
+  .wrap{max-width:980px;margin:0 auto}
+  .card{
+    background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;
+    box-shadow:0 18px 50px -26px rgba(14,27,23,.45);
+  }
+  /* hero band */
+  .hero{
+    background:linear-gradient(135deg,#176349,#114e3a);color:#fff;
+    padding:22px 26px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  }
+  .hero .left{flex:1;min-width:260px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .brand .logo{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.15);display:grid;place-items:center;font-weight:800;font-size:14px}
+  .brand .name{font-size:12.5px;font-weight:600;opacity:.92}
+  .brand .name span{opacity:.5;margin:0 5px}
+  .hero h1{font-size:25px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+  .hero p{font-size:12.5px;line-height:1.5;color:rgba(255,255,255,.82);margin-top:8px;max-width:34em}
+  .chip{
+    flex:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+    border-radius:14px;padding:14px 20px;text-align:center
+  }
+  .chip .big{font-size:26px;font-weight:800;line-height:1}
+  .chip .cap{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;opacity:.75;margin-top:4px}
+
+  /* body */
+  .body{padding:20px 26px 8px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .col h3{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--sub);display:flex;align-items:center;gap:7px;margin-bottom:9px}
+  .col h3 .pin{font-size:8.5px;font-weight:700;padding:2px 6px;border-radius:999px}
+  .pin-b{background:#eef4ff;color:#2456c8}
+  .pin-m{background:var(--moss50);color:var(--moss)}
+  .col ul{list-style:none;display:flex;flex-direction:column;gap:5px}
+  .col li{font-size:11.5px;line-height:1.4;color:var(--ink);display:flex;gap:7px}
+  .col li .c{color:var(--moss);font-weight:800;flex:none}
+  .col li b{font-weight:700}
+  .col.settle{background:var(--moss50);border-radius:13px;padding:13px;border:1px solid var(--moss100)}
+  .col.settle p{font-size:11.5px;line-height:1.5;color:var(--ink)}
+  .col.settle p b{font-weight:700}
+
+  /* value strip */
+  .vp{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+  .vp .v{flex:1;min-width:170px;display:flex;gap:10px;align-items:flex-start}
+  .vp .ic{width:30px;height:30px;border-radius:9px;background:var(--moss50);color:var(--moss);display:grid;place-items:center;flex:none}
+  .vp h4{font-size:12px;font-weight:700;margin-bottom:2px}
+  .vp p{font-size:10.5px;color:var(--sub);line-height:1.4}
+
+  /* cta footer */
+  .foot{
+    margin-top:16px;background:var(--sand);border-radius:14px;padding:14px 16px;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap
+  }
+  .foot .txt{flex:1;min-width:230px}
+  .foot .txt .b{font-size:13px;font-weight:800}
+  .foot .txt .s{font-size:10.5px;color:var(--sub);margin-top:2px}
+  .btn{
+    background:var(--moss);color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;
+    padding:11px 18px;border-radius:11px;white-space:nowrap;display:inline-block
+  }
+  .disc{padding:10px 26px 18px;font-size:8.5px;color:#9aa39d;line-height:1.45}
+
+  svg{display:block}
+
+  @media (max-width:720px){
+    .row3{grid-template-columns:1fr}
+    .hero h1{font-size:21px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <!-- hero -->
+    <div class="hero">
+      <div class="left">
+        <div class="brand">
+          <div class="logo">P</div>
+          <div class="name">Peptide Partners <span>×</span> MOSS Checkout</div>
+        </div>
+        <h1>A premium checkout your buyers already know how to use.</h1>
+        <p>Familiar, high-converting checkout for your research-use-only catalog — and predictable settlement in PYUSD for you. The crypto complexity stays completely out of sight.</p>
+      </div>
+      <div class="chip"><div class="big">PYUSD</div><div class="cap">v1 settlement</div></div>
+    </div>
+
+    <!-- body -->
+    <div class="body">
+      <div class="row3">
+        <div class="col">
+          <h3>For your buyer <span class="pin pin-b">WEB2 FEEL</span></h3>
+          <ul>
+            <li><span class="c">›</span><span><b>Sign in</b> — passkey, Apple, Google, or email code</span></li>
+            <li><span class="c">›</span><span><b>Ship</b> — saved securely for next time</span></li>
+            <li><span class="c">›</span><span><b>Pay</b> — Apple Pay, Google Pay, card, PayPal</span></li>
+            <li><span class="c">›</span><span><b>Confirmed</b> — receipt emailed instantly</span></li>
+          </ul>
+          <p style="font-size:10px;color:var(--sub);margin-top:9px;line-height:1.4">No wallets, networks, gas, or signatures — ever.</p>
+        </div>
+        <div class="col">
+          <h3>For you <span class="pin pin-m">STRIPE FEEL</span></h3>
+          <ul>
+            <li><span class="c">›</span><span><b>Turn on</b> — verify business, add products</span></li>
+            <li><span class="c">›</span><span><b>Choose</b> how you get paid — PYUSD</span></li>
+            <li><span class="c">›</span><span><b>Operate</b> — orders, settlement &amp; fulfillment status</span></li>
+            <li><span class="c">›</span><span><b>Export</b> — clean records for your books</span></li>
+          </ul>
+          <p style="font-size:10px;color:var(--sub);margin-top:9px;line-height:1.4">No liquidity, conversions, or fees to manage.</p>
+        </div>
+        <div class="col settle">
+          <h3 style="color:var(--moss)">How you get paid</h3>
+          <p><b>However your buyer pays, you receive PYUSD.</b> Add a payout destination like a bank account, send a test settlement to confirm it, go live. Card or Apple Pay in — PYUSD out, to a destination you control.</p>
+        </div>
+      </div>
+
+      <!-- value props -->
+      <div class="vp">
+        <div class="v">
+          <div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
+          <div><h4>Higher conversion</h4><p>A checkout buyers don’t have to learn — fewer abandoned carts.</p></div>
+        </div>
+        <div class="v">
+          <div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5h4.5a1.5 1.5 0 0 1 0 3H10a1.5 1.5 0 0 0 0 3H15"/></svg></div>
+          <div><h4>Predictable settlement</h4><p>Paid in PYUSD, a US-dollar-denominated stablecoin.</p></div>
+        </div>
+        <div class="v">
+          <div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div>
+          <div><h4>Zero infrastructure</h4><p>No wallets or treasury ops. MOSS, on MegaETH, runs it.</p></div>
+        </div>
+      </div>
+
+      <!-- cta -->
+      <div class="foot">
+        <div class="txt">
+          <div class="b">See it on your own catalog — a test store in an afternoon.</div>
+          <div class="s">We’ll spin up a branded test checkout with your products.</div>
+        </div>
+        <a class="btn" href="#">Book a 30-min setup →</a>
+      </div>
+    </div>
+
+    <div class="disc">Peptide Partners remains the merchant of record and is responsible for its own catalog, licensing, and customer obligations. Products are research-use-only. MOSS provides payment and settlement infrastructure and makes no regulatory or product-use representations. Consult your own counsel for jurisdiction-specific requirements.</div>
+  </div>
+</div>
+</body>
+</html>

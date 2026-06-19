@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MOSS for Partners — Peptide Partners</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        ink:'#0E1B17', sub:'#5b6b63',
+        moss:{50:'#f0f7f3',100:'#dceee4',200:'#bfe0d0',500:'#1f7a5a',600:'#176349',700:'#114e3a'},
+        sand:'#F7F6F2', line:'#e7eae6',
+      },
+      fontFamily:{sans:['-apple-system','BlinkMacSystemFont','Inter','Segoe UI','Roboto','sans-serif']},
+      boxShadow:{card:'0 1px 2px rgba(14,27,23,.04)', pop:'0 20px 60px -20px rgba(14,27,23,.35)'},
+    }}
+  }
+</script>
+<style>
+  body{background:#f4f6f3;-webkit-font-smoothing:antialiased;color:#0E1B17}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .anim{animation:fadeUp .24s ease both}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spin{animation:spin .8s linear infinite}
+  @keyframes slideIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+  .slide{animation:slideIn .25s ease both}
+  @keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+  .sheet{animation:sheetUp .28s cubic-bezier(.2,.8,.2,1) both}
+  .tap{transition:transform .08s,box-shadow .2s,background .15s,border-color .15s}
+  .tap:active{transform:scale(.99)}
+  input:focus,select:focus{outline:none}
+  ::placeholder{color:#9aa39d}
+  .noscroll::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/plain" id="appsrc">
+const { useState, useMemo } = React;
+
+/* ---------------- icons ---------------- */
+const I = {
+  home:(p)=><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg>,
+  orders:(p)=><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="M6 2h9l5 5v15H6z"/><path d="M9 12h7M9 16h7M9 8h3"/></svg>,
+  payouts:(p)=><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...p}><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 15h4"/></svg>,
+  products:(p)=><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="m3 7 9 4v10l-9-4V7Z"/><path d="m21 7-9 4v10l9-4V7Z"/></svg>,
+  users:(p)=><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...p}><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><path d="M16 6a3 3 0 0 1 0 6M18 20c0-2-1-3.5-2.5-4.5"/></svg>,
+  checkout:(p)=><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...p}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 14h5"/></svg>,
+  settle:(p)=><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...p}><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5h4.5a1.5 1.5 0 0 1 0 3H10a1.5 1.5 0 0 0 0 3H15"/></svg>,
+  card:(p)=><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...p}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>,
+  dev:(p)=><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="m8 9-4 3 4 3M16 9l4 3-4 3M13 6l-2 12"/></svg>,
+  cog:(p)=><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...p}><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.4 1a7 7 0 0 0-1.7-1L14.5 2h-5l-.3 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.5L3 11a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a7 7 0 0 0 1.7 1l.3 2.5h5l.3-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.5-2-1.5a7 7 0 0 0 .1-1Z"/></svg>,
+  rocket:(p)=><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2M9 11a4 4 0 0 1 1-2c3-3 8-3 8-3s0 5-3 8a4 4 0 0 1-2 1"/><circle cx="15" cy="9" r="1.2"/></svg>,
+  check:(p)=><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 6 9 17l-5-5"/></svg>,
+  plus:(p)=><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" {...p}><path d="M12 5v14M5 12h14"/></svg>,
+  shield:(p)=><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>,
+  ext:(p)=><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>,
+  copy:(p)=><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" {...p}><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>,
+  filter:(p)=><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>,
+  search:(p)=><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" {...p}><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>,
+  more:(p)=><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" {...p}><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>,
+};
+
+const money=(n)=>'$'+n.toFixed(2);
+
+/* ---------------- fixtures ---------------- */
+const seedProducts=[
+  {id:'sku_001',name:'BPC-157 · 5mg',sku:'BPC-5',price:42,stock:120,research:true,emoji:'🧪',status:'Active'},
+  {id:'sku_002',name:'TB-500 · 5mg',sku:'TB-5',price:55,stock:64,research:true,emoji:'🧬',status:'Active'},
+  {id:'sku_003',name:'Bacteriostatic Water · 30ml',sku:'BW-30',price:14,stock:340,research:false,emoji:'💧',status:'Active'},
+  {id:'sku_004',name:'GHK-Cu · 50mg',sku:'GHK-50',price:68,stock:0,research:true,emoji:'🔬',status:'Out of stock'},
+  {id:'sku_005',name:'Sterile Vial Kit',sku:'SVK-1',price:9,stock:0,research:false,emoji:'🧫',status:'Draft'},
+];
+const seedOrders=[
+  {id:'PP-7Q2X',name:'Chris Rivers',buyer:'c•••@gmail.com',items:'BPC-157 ×2, BW ×1',total:104.5,method:'Apple Pay',pay:'Paid',settle:'Settled',fulfill:'Confirmed',date:'Jun 11'},
+  {id:'PP-4K9D',name:'Ana Diaz',buyer:'a•••@icloud.com',items:'TB-500 ×1',total:61.5,method:'Visa ··42',pay:'Paid',settle:'Settling',fulfill:'Preparing',date:'Jun 11'},
+  {id:'PP-1M3R',name:'Jon Webb',buyer:'j•••@gmail.com',items:'BPC-157 ×1',total:48.5,method:'Google Pay',pay:'Paid',settle:'Settled',fulfill:'Shipped',date:'Jun 10'},
+  {id:'PP-8Z0A',name:'Mia Cole',buyer:'m•••@outlook.com',items:'BW ×4',total:62.5,method:'PayPal',pay:'Paid',settle:'Settled',fulfill:'Delivered',date:'Jun 9'},
+  {id:'PP-5T6P',name:'Kai Frost',buyer:'k•••@gmail.com',items:'TB-500 ×2, BPC ×1',total:158.5,method:'Stablecoin',pay:'Paid',settle:'On hold',fulfill:'Confirmed',date:'Jun 11'},
+  {id:'PP-3B2W',name:'Lena Ott',buyer:'l•••@gmail.com',items:'GHK-Cu ×1',total:74.5,method:'Visa ··08',pay:'Failed',settle:'—',fulfill:'Canceled',date:'Jun 8'},
+  {id:'PP-9X1C',name:'Sam Park',buyer:'s•••@icloud.com',items:'BPC-157 ×3',total:132.5,method:'Apple Pay',pay:'Paid',settle:'Settling',fulfill:'Confirmed',date:'Jun 11'},
+];
+
+/* ---------------- pills ---------------- */
+function PayPill({s}){const m={Paid:'bg-moss-50 text-moss-600',Failed:'bg-red-50 text-red-500','—':'bg-gray-100 text-gray-400'};return <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${m[s]}`}>{s}</span>;}
+function SettlePill({s}){const m={Settling:'bg-amber-50 text-amber-600',Settled:'bg-moss-50 text-moss-600','On hold':'bg-red-50 text-red-500','—':'bg-gray-100 text-gray-400'};const d={Settling:'bg-amber-500',Settled:'bg-moss-500','On hold':'bg-red-500','—':'bg-gray-300'};return <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold ${m[s]}`}><span className={`w-1.5 h-1.5 rounded-full ${d[s]}`}/>{s}</span>;}
+function FulfillPill({s}){const m={Confirmed:'bg-blue-50 text-blue-600',Preparing:'bg-amber-50 text-amber-600',Shipped:'bg-indigo-50 text-indigo-600',Delivered:'bg-moss-50 text-moss-600',Canceled:'bg-gray-100 text-gray-500'};return <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${m[s]}`}>{s}</span>;}
+
+/* ---------------- atoms ---------------- */
+const Field=({label,hint,err,...p})=>(<label className="block">{label&&<span className="block text-[12px] font-medium text-sub mb-1.5">{label}</span>}<input {...p} className={`w-full h-[44px] rounded-lg border ${err?'border-red-400':'border-line focus:border-moss-500'} bg-white px-3.5 text-[14px]`}/>{hint&&<span className={`block text-[11px] mt-1 ${err?'text-red-500':'text-sub/80'}`}>{hint}</span>}</label>);
+const Btn=({children,onClick,variant='primary',disabled,size='md'})=>{const v={primary:'bg-moss-600 hover:bg-moss-700 text-white',ghost:'bg-white border border-line hover:border-ink/25 text-ink',subtle:'bg-sand hover:bg-moss-50 text-ink',danger:'bg-red-500 hover:bg-red-600 text-white'};const s={md:'h-[42px] px-4 text-[14px]',sm:'h-[34px] px-3 text-[13px]'};return <button onClick={onClick} disabled={disabled} className={`tap rounded-lg font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-40 ${v[variant]} ${s[size]}`}>{children}</button>;};
+const Toggle=({on,onClick})=>(<button onClick={onClick} className={`tap w-11 h-6 rounded-full p-0.5 ${on?'bg-moss-600':'bg-ink/15'}`}><span className={`block w-5 h-5 rounded-full bg-white shadow transition-transform ${on?'translate-x-5':''}`}/></button>);
+const Panel=({title,desc,right,children})=>(<div className="rounded-2xl bg-white border border-line p-5"><div className="flex items-start justify-between"><div><h3 className="font-semibold text-[15px]">{title}</h3>{desc&&<p className="text-[12px] text-sub mt-0.5 mb-4">{desc}</p>}</div>{right}</div>{children}</div>);
+const Tabs=({tabs,active,onChange})=>(<div className="flex gap-1 border-b border-line mb-5 overflow-x-auto noscroll">{tabs.map(t=>(<button key={t} onClick={()=>onChange(t)} className={`tap px-3.5 py-2.5 text-[13px] font-medium whitespace-nowrap border-b-2 -mb-px ${active===t?'border-moss-600 text-moss-700':'border-transparent text-sub hover:text-ink'}`}>{t}</button>))}</div>);
+const Empty=({icon,title,body,cta,onCta,cta2,onCta2})=>(<div className="rounded-2xl border border-dashed border-line bg-white/60 py-14 px-6 text-center"><div className="mx-auto w-12 h-12 rounded-2xl bg-sand text-sub grid place-items-center mb-3">{icon}</div><h3 className="font-semibold text-[15px]">{title}</h3><p className="text-[13px] text-sub mt-1 max-w-sm mx-auto">{body}</p>{(cta||cta2)&&<div className="flex gap-2 justify-center mt-4">{cta&&<Btn size="sm" onClick={onCta}>{cta}</Btn>}{cta2&&<Btn size="sm" variant="ghost" onClick={onCta2}>{cta2}</Btn>}</div>}</div>);
+
+/* ====================================================== ONBOARDING (condensed) */
+const WIZARD=[{key:'business',label:'Business'},{key:'products',label:'Products'},{key:'methods',label:'Payments'},{key:'settlement',label:'Settlement'},{key:'payout',label:'Payout'},{key:'preview',label:'Preview'},{key:'golive',label:'Go live'}];
+function Onboarding({onDone}){
+  const [i,setI]=useState(0);const step=WIZARD[i].key;
+  const next=()=>setI(Math.min(i+1,WIZARD.length-1));const back=()=>setI(Math.max(i-1,0));
+  return (<div className="min-h-screen flex">
+    <aside className="hidden md:flex flex-col w-64 bg-white border-r border-line p-6">
+      <div className="flex items-center gap-2 mb-8"><div className="w-8 h-8 rounded-lg bg-moss-600 text-white grid place-items-center font-bold text-sm">M</div><span className="font-semibold">MOSS <span className="text-sub font-normal">for Partners</span></span></div>
+      <ol className="space-y-1">{WIZARD.map((w,idx)=>(<li key={w.key} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] ${idx===i?'bg-moss-50 text-moss-700 font-semibold':idx<i?'text-ink':'text-sub'}`}><span className={`w-5 h-5 rounded-full grid place-items-center text-[10px] font-bold ${idx<i?'bg-moss-600 text-white':idx===i?'border-2 border-moss-600 text-moss-700':'border border-line'}`}>{idx<i?<I.check/>:idx+1}</span>{w.label}</li>))}</ol>
+      <div className="mt-auto flex items-center gap-1.5 text-[11px] text-sub"><I.shield/> Setup takes ~5 minutes</div>
+    </aside>
+    <main className="flex-1 flex flex-col">
+      <div className="flex-1 grid place-items-center p-6"><div key={step} className="w-full max-w-xl anim">
+        {step==='business'&&<OB k="Business details" t="Tell us about your store" d="We verify your business to keep payments secure and compliant."><div className="space-y-4"><Field label="Legal business name" defaultValue="Peptide Partners LLC"/><div className="grid grid-cols-2 gap-4"><Field label="Country" defaultValue="United States"/><Field label="Category" defaultValue="Research supplies"/></div></div></OB>}
+        {step==='products'&&<OB k="Products & SKUs" t="Add what you’re selling" d="Add products one by one or import a CSV.">{seedProducts.slice(0,3).map(p=>(<div key={p.id} className="flex items-center gap-3 rounded-xl border border-line bg-white p-3 mb-2"><div className="w-10 h-10 rounded-lg bg-sand grid place-items-center text-xl">{p.emoji}</div><div className="flex-1"><div className="text-[14px] font-semibold">{p.name}</div><div className="text-[12px] text-sub">SKU {p.sku}</div></div><div className="font-semibold">{money(p.price)}</div></div>))}</OB>}
+        {step==='methods'&&<OB k="Accepted payment methods" t="Let buyers pay how they like" d="However they pay, you’re paid in your chosen asset.">{[['Apple Pay',1],['Google Pay',1],['Cards',1],['PayPal',1],['Stablecoin balance (advanced)',0]].map(([n,on])=>(<div key={n} className="flex items-center justify-between rounded-xl border border-line bg-white p-3.5 mb-2"><span className="text-[14px] font-semibold">{n}</span><Toggle on={!!on} onClick={()=>{}}/></div>))}</OB>}
+        {step==='settlement'&&<OB k="Settlement preference" t="How do you want to get paid?" d="Pick the asset you receive. MOSS handles orchestration — no conversions, liquidity, or fees to manage."><div className="space-y-2.5"><div className="flex items-center gap-3 rounded-xl border border-moss-600 bg-moss-50 ring-1 ring-moss-600 p-4"><div className="w-10 h-10 rounded-lg bg-moss-100 text-moss-700 grid place-items-center font-bold text-[13px]">US</div><div className="flex-1"><div className="font-semibold">USDm</div><div className="text-[12px] text-sub">Available now</div></div><span className="text-moss-600"><I.check/></span></div>{['USDC','USD bank deposit'].map(x=>(<div key={x} className="flex items-center gap-3 rounded-xl border border-line bg-white p-4 opacity-50"><div className="w-10 h-10 rounded-lg bg-sand grid place-items-center font-bold text-[13px]">{x.slice(0,2)}</div><div className="flex-1"><div className="font-semibold">{x}</div><div className="text-[12px] text-sub">Coming soon</div></div><span className="text-[11px] text-sub font-medium">Soon</span></div>))}</div></OB>}
+        {step==='payout'&&<OB k="Payout destination" t="Where should we send your payouts?" d="Add the destination for your USDm settlements — like adding a bank account."><div className="space-y-4"><Field label="Payout label" defaultValue="Peptide Partners — Treasury"/><Field label="USDm payout address" defaultValue="0x7a3f…be21" hint="We’ll confirm this before activation."/></div></OB>}
+        {step==='preview'&&<OB k="Preview checkout" t="This is what your buyers will see" d="Your branding, your products — a premium checkout that feels familiar."><div className="rounded-2xl border border-line bg-sand p-6 grid place-items-center"><div className="w-full max-w-[280px] bg-white rounded-2xl shadow-pop p-5"><div className="flex items-center gap-2 mb-4"><div className="w-7 h-7 rounded-lg bg-moss-600 text-white grid place-items-center text-xs font-bold">P</div><span className="text-[13px] font-semibold">Peptide Partners</span></div><div className="text-[15px] font-bold mb-1">Payment</div><div className="h-10 rounded-lg bg-black text-white text-[12px] font-semibold grid place-items-center my-2"> Pay</div><div className="h-10 rounded-lg border border-line text-[12px] font-semibold grid place-items-center">Credit or debit card</div><div className="text-center text-[11px] text-sub mt-3">Secured by MOSS</div></div></div></OB>}
+        {step==='golive'&&<GoLive onDone={onDone}/>}
+      </div></div>
+      {step!=='golive'&&<div className="border-t border-line bg-white px-6 py-4 flex items-center justify-between"><button onClick={back} disabled={i===0} className="text-[13px] text-sub disabled:opacity-30 hover:text-ink">← Back</button><div className="flex gap-2">{['products','payout'].includes(step)&&<Btn variant="ghost" onClick={next}>Skip for now</Btn>}<Btn onClick={next}>Continue</Btn></div></div>}
+    </main>
+  </div>);
+}
+const OB=({k,t,d,children})=>(<div><div className="mb-6"><div className="text-[12px] font-semibold text-moss-600 mb-1">{k}</div><h1 className="text-[24px] font-bold tracking-tight">{t}</h1><p className="text-[14px] text-sub mt-1.5">{d}</p></div>{children}</div>);
+function GoLive({onDone}){
+  const [list,setList]=useState([{label:'Business verified',done:true},{label:'Payout destination confirmed',done:true},{label:'At least one product added',done:true},{label:'Branding set',done:true},{label:'Payment methods chosen',done:true},{label:'Test order completed',done:false}]);
+  const all=list.every(c=>c.done);
+  return (<div className="text-center"><div className="mx-auto w-14 h-14 rounded-2xl bg-moss-50 text-moss-600 grid place-items-center mb-4"><I.rocket/></div><h1 className="text-[24px] font-bold tracking-tight">You’re almost live</h1><p className="text-[14px] text-sub mt-1.5 mb-6">Complete the checklist to start accepting real payments.</p><div className="text-left rounded-2xl border border-line bg-white divide-y divide-line mb-6">{list.map((c,idx)=>(<button key={c.label} onClick={()=>{const n=[...list];n[idx].done=!n[idx].done;setList(n);}} className="w-full flex items-center gap-3 p-3.5 text-[14px]"><span className={`w-6 h-6 rounded-full grid place-items-center ${c.done?'bg-moss-600 text-white':'border-2 border-line text-transparent'}`}><I.check/></span><span className={c.done?'text-ink font-medium':'text-sub'}>{c.label}</span>{!c.done&&<span className="ml-auto text-[12px] text-moss-600 font-semibold">Run now →</span>}</button>))}</div><Btn onClick={onDone} disabled={!all}><I.rocket/> {all?'Go live':'Complete checklist to go live'}</Btn></div>);
+}
+
+/* ====================================================== DASHBOARD SHELL */
+const NAV=[
+  {k:'overview',label:'Overview',icon:I.home},
+  {k:'orders',label:'Orders',icon:I.orders},
+  {k:'products',label:'Products',icon:I.products},
+  {k:'customers',label:'Customers',icon:I.users,soon:true},
+  {k:'settlements',label:'Settlements',icon:I.settle},
+  {k:'checkout',label:'Checkout settings',icon:I.checkout},
+  {k:'methods',label:'Payment methods',icon:I.card},
+  {k:'developers',label:'Developers',icon:I.dev},
+  {k:'settings',label:'Settings',icon:I.cog},
+];
+const BOTTOM=['overview','orders','products','settlements'];
+
+function Dashboard({onReset}){
+  const [tab,setTab]=useState('overview');
+  const [live,setLive]=useState(false);
+  const [order,setOrder]=useState(null);
+  const [moreOpen,setMoreOpen]=useState(false);
+  const go=(k)=>{setTab(k);setMoreOpen(false);};
+  const cur=NAV.find(n=>n.k===tab);
+
+  return (<div className="min-h-screen flex">
+    {/* sidebar (desktop) */}
+    <aside className="hidden lg:flex flex-col w-60 bg-white border-r border-line">
+      <div className="flex items-center gap-2 px-5 h-16 border-b border-line"><div className="w-8 h-8 rounded-lg bg-moss-600 text-white grid place-items-center font-bold text-sm">P</div><div className="leading-tight"><div className="text-[13px] font-semibold">Peptide Partners</div><div className="text-[11px] text-sub flex items-center gap-1"><I.shield className="text-moss-600"/> Verified</div></div></div>
+      <nav className="flex-1 p-3 space-y-0.5">{NAV.map(n=>(<button key={n.k} onClick={()=>go(n.k)} className={`tap w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] ${tab===n.k?'bg-moss-50 text-moss-700 font-semibold':'text-sub hover:bg-sand'}`}><n.icon/> <span className="flex-1 text-left">{n.label}</span>{n.soon&&<span className="text-[10px] px-1.5 py-0.5 rounded bg-sand text-sub font-semibold">Soon</span>}</button>))}</nav>
+      <div className="p-3 border-t border-line"><button onClick={onReset} className="w-full text-[12px] text-sub hover:text-ink py-2">↺ Restart onboarding demo</button></div>
+    </aside>
+
+    <div className="flex-1 flex flex-col min-w-0">
+      {/* topbar */}
+      <header className="h-16 bg-white border-b border-line flex items-center px-4 sm:px-6 gap-3">
+        <h2 className="text-[16px] font-bold">{cur?.label}</h2>
+        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          <div className="hidden sm:flex items-center gap-2 px-3 h-9 rounded-lg bg-sand text-[12px]"><I.search className="text-sub"/><input placeholder="Search…" className="bg-transparent w-28 text-[13px]"/></div>
+          <div className="flex items-center gap-2 px-2.5 h-9 rounded-lg bg-sand text-[12px]"><span className={`w-2 h-2 rounded-full ${live?'bg-moss-500':'bg-amber-500'}`}/><span className="hidden sm:inline">{live?'Live':'Test'}</span><Toggle on={live} onClick={()=>setLive(!live)}/></div>
+        </div>
+      </header>
+
+      <main className="flex-1 overflow-auto p-4 sm:p-6 pb-24 lg:pb-6 anim" key={tab}>
+        {tab==='overview'&&<Overview live={live} go={go}/>}
+        {tab==='orders'&&<Orders onOpen={setOrder} go={go}/>}
+        {tab==='products'&&<Products/>}
+        {tab==='customers'&&<Customers/>}
+        {tab==='settlements'&&<Settlements/>}
+        {tab==='checkout'&&<CheckoutSettings/>}
+        {tab==='methods'&&<PaymentMethods/>}
+        {tab==='developers'&&<Developers/>}
+        {tab==='settings'&&<SettingsView/>}
+      </main>
+    </div>
+
+    {/* bottom tab bar (mobile/tablet) */}
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-line flex z-30">
+      {BOTTOM.map(k=>{const n=NAV.find(x=>x.k===k);return (<button key={k} onClick={()=>go(k)} className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium ${tab===k?'text-moss-700':'text-sub'}`}><n.icon/> {n.label.split(' ')[0]}</button>);})}
+      <button onClick={()=>setMoreOpen(true)} className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium ${moreOpen||!BOTTOM.includes(tab)?'text-moss-700':'text-sub'}`}><I.more/> More</button>
+    </nav>
+
+    {moreOpen&&<div className="lg:hidden fixed inset-0 z-40" onClick={()=>setMoreOpen(false)}><div className="absolute inset-0 bg-ink/20"/><div className="absolute bottom-0 inset-x-0 bg-white rounded-t-2xl p-4 sheet" onClick={e=>e.stopPropagation()}><div className="w-10 h-1 rounded-full bg-line mx-auto mb-3"/><div className="grid grid-cols-2 gap-2">{NAV.filter(n=>!BOTTOM.includes(n.k)).map(n=>(<button key={n.k} onClick={()=>go(n.k)} className="flex items-center gap-2 p-3 rounded-xl bg-sand text-[13px] font-medium text-ink"><n.icon/> {n.label}{n.soon&&<span className="ml-auto text-[10px] text-sub">Soon</span>}</button>))}</div><button onClick={onReset} className="w-full text-[12px] text-sub py-3 mt-2">↺ Restart onboarding demo</button></div></div>}
+
+    {order&&<OrderDrawer o={order} onClose={()=>setOrder(null)}/>}
+  </div>);
+}
+
+/* ---- overview ---- */
+function Overview({live,go}){
+  const kpis=[
+    {label:'Gross sales (30d)',value:'$12,480.50',sub:'+18% vs prev',accent:'text-moss-600',link:null},
+    {label:'Paid orders (30d)',value:'214',sub:'+24 today',accent:'text-moss-600',link:()=>go('orders')},
+    {label:'Pending orders',value:'6',sub:'awaiting fulfillment',accent:'text-amber-600',link:()=>go('orders')},
+    {label:'Settlement',value:'$220.00',sub:'settling · $12,038 settled',accent:'text-moss-600',link:()=>go('settlements')},
+    {label:'Conversion rate',value:'—',sub:'Tracking starts when live',accent:'text-sub',link:null},
+    {label:'Top method',value:'Apple Pay',sub:'41% of orders',accent:'text-moss-600',link:()=>go('methods')},
+  ];
+  const breakdown=[['Apple Pay',41],['Card',33],['Google Pay',18],['PayPal',6],['Stablecoin',2]];
+  return (<div className="space-y-6 max-w-5xl">
+    {!live&&<div className="rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[13px] px-4 py-3 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500"/> You’re in <b className="mx-1">test mode</b>. Flip the switch in the top bar to accept real payments.</div>}
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">{kpis.map(k=>(<button key={k.label} onClick={k.link||undefined} className={`text-left rounded-2xl bg-white border border-line p-4 ${k.link?'tap hover:border-ink/20':''}`}><div className="text-[12px] text-sub">{k.label}</div><div className="text-[22px] font-bold mt-1">{k.value}</div><div className={`text-[11px] font-medium mt-0.5 ${k.accent}`}>{k.sub}</div></button>))}</div>
+    <div className="grid lg:grid-cols-3 gap-4">
+      <div className="lg:col-span-2 rounded-2xl bg-white border border-line p-5"><div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-[14px]">Recent orders</h3><button onClick={()=>go('orders')} className="text-[12px] text-moss-600 font-semibold">View all →</button></div><div className="space-y-2">{seedOrders.slice(0,4).map(o=>(<div key={o.id} className="flex items-center gap-3 text-[13px]"><span className="font-mono text-sub w-20">{o.id}</span><span className="flex-1 truncate text-sub">{o.items}</span><span className="font-semibold">{money(o.total)}</span><SettlePill s={o.settle}/></div>))}</div></div>
+      <div className="rounded-2xl bg-white border border-line p-5"><h3 className="font-semibold text-[14px] mb-3">Payment methods</h3><div className="space-y-2.5">{breakdown.map(([n,p])=>(<div key={n}><div className="flex justify-between text-[12px] mb-1"><span className="text-sub">{n}</span><span className="font-semibold">{p}%</span></div><div className="h-1.5 rounded-full bg-sand overflow-hidden"><div className="h-full bg-moss-500 rounded-full" style={{width:p+'%'}}/></div></div>))}</div></div>
+    </div>
+    <div className="rounded-2xl bg-white border border-line p-5 flex items-center gap-4"><div className="rounded-xl bg-moss-50 px-5 py-3"><div className="text-[24px] font-bold text-moss-700">USDm</div></div><div><div className="text-[13px] font-semibold">You get paid in USDm</div><div className="text-[12px] text-sub">Settles to Treasury · 0x7a3f…be21 — MOSS handles all orchestration.</div></div><button onClick={()=>go('settlements')} className="ml-auto text-[12px] text-moss-600 font-semibold">Manage →</button></div>
+  </div>);
+}
+
+/* ---- orders (with subtabs + filters) ---- */
+function Orders({onOpen,go}){
+  const subtabs=['All','Unfulfilled','Settling','Issues'];
+  const [sub,setSub]=useState('All');
+  const [q,setQ]=useState('');
+  const [f,setF]=useState({pay:'',settle:'',fulfill:'',method:''});
+  const [sheet,setSheet]=useState(false);
+  const views=[['Needs fulfillment',{pay:'',settle:'',fulfill:'Confirmed',method:''}],['Settlement issues',{pay:'',settle:'On hold',fulfill:'',method:''}]];
+
+  const list=useMemo(()=>seedOrders.filter(o=>{
+    if(sub==='Unfulfilled'&&!['Confirmed','Preparing'].includes(o.fulfill))return false;
+    if(sub==='Settling'&&o.settle!=='Settling')return false;
+    if(sub==='Issues'&&!(o.settle==='On hold'||o.pay==='Failed'))return false;
+    if(q&&!(o.id+o.name+o.buyer+o.items).toLowerCase().includes(q.toLowerCase()))return false;
+    if(f.pay&&o.pay!==f.pay)return false;
+    if(f.settle&&o.settle!==f.settle)return false;
+    if(f.fulfill&&o.fulfill!==f.fulfill)return false;
+    if(f.method&&!o.method.includes(f.method))return false;
+    return true;
+  }),[sub,q,f]);
+
+  const activeFilters=Object.values(f).filter(Boolean).length;
+  const clear=()=>setF({pay:'',settle:'',fulfill:'',method:''});
+  const Sel=({k,opts,ph})=>(<select value={f[k]} onChange={e=>setF({...f,[k]:e.target.value})} className={`h-9 rounded-lg border bg-white px-2.5 text-[12px] font-medium ${f[k]?'border-moss-500 text-moss-700':'border-line text-sub'}`}><option value="">{ph}</option>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select>);
+
+  return (<div className="max-w-5xl">
+    <Tabs tabs={subtabs} active={sub} onChange={setSub}/>
+    {/* filter bar */}
+    <div className="flex items-center gap-2 mb-4 flex-wrap">
+      <div className="flex items-center gap-2 px-3 h-9 rounded-lg border border-line bg-white flex-1 min-w-[160px] max-w-xs"><I.search className="text-sub"/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search orders" className="bg-transparent w-full text-[13px]"/></div>
+      <div className="hidden sm:flex items-center gap-2"><Sel k="pay" opts={['Paid','Failed']} ph="Payment"/><Sel k="settle" opts={['Settling','Settled','On hold']} ph="Settlement"/><Sel k="fulfill" opts={['Confirmed','Preparing','Shipped','Delivered','Canceled']} ph="Fulfillment"/><Sel k="method" opts={['Apple Pay','Google Pay','Visa','PayPal','Stablecoin']} ph="Method"/></div>
+      <button onClick={()=>setSheet(true)} className="sm:hidden tap h-9 px-3 rounded-lg border border-line bg-white text-[12px] font-medium flex items-center gap-1.5 text-sub"><I.filter/> Filters{activeFilters>0&&<span className="bg-moss-600 text-white rounded-full px-1.5 text-[10px]">{activeFilters}</span>}</button>
+      {activeFilters>0&&<button onClick={clear} className="text-[12px] text-sub hover:text-ink">Clear</button>}
+      <Btn variant="ghost" size="sm"><I.ext/> Export</Btn>
+    </div>
+    {/* saved views */}
+    <div className="flex gap-2 mb-4">{views.map(([n,v])=>(<button key={n} onClick={()=>setF(v)} className="tap text-[12px] px-2.5 py-1.5 rounded-full bg-sand hover:bg-moss-50 text-sub font-medium">{n}</button>))}</div>
+
+    <p className="text-[12px] text-sub mb-3">{list.length} {list.length===1?'order':'orders'}</p>
+
+    {list.length===0 ? <Empty icon={<I.orders/>} title="No orders match these filters" body="Try clearing filters or switching tabs." cta="Clear filters" onCta={()=>{clear();setSub('All');setQ('');}}/> : (<>
+      {/* desktop table */}
+      <div className="hidden md:block rounded-2xl bg-white border border-line overflow-hidden">
+        <table className="w-full text-[13px]"><thead><tr className="text-left text-sub border-b border-line bg-sand/50"><th className="px-4 py-3 font-medium">Order</th><th className="px-4 py-3 font-medium">Customer</th><th className="px-4 py-3 font-medium">Products</th><th className="px-4 py-3 font-medium">Amount</th><th className="px-4 py-3 font-medium">Payment</th><th className="px-4 py-3 font-medium">Settlement</th><th className="px-4 py-3 font-medium">Fulfillment</th></tr></thead>
+        <tbody className="divide-y divide-line">{list.map(o=>(<tr key={o.id} onClick={()=>onOpen(o)} className="hover:bg-sand/40 cursor-pointer"><td className="px-4 py-3 font-mono">{o.id}<div className="text-[11px] text-sub font-sans">{o.date}</div></td><td className="px-4 py-3"><div className="font-medium">{o.name}</div><div className="text-[11px] text-sub">{o.buyer}</div></td><td className="px-4 py-3 text-sub max-w-[160px] truncate">{o.items}</td><td className="px-4 py-3 font-semibold">{money(o.total)}</td><td className="px-4 py-3"><PayPill s={o.pay}/></td><td className="px-4 py-3"><SettlePill s={o.settle}/></td><td className="px-4 py-3"><FulfillPill s={o.fulfill}/></td></tr>))}</tbody></table>
+      </div>
+      {/* mobile cards */}
+      <div className="md:hidden space-y-2.5">{list.map(o=>(<button key={o.id} onClick={()=>onOpen(o)} className="tap w-full text-left rounded-2xl bg-white border border-line p-4"><div className="flex items-center justify-between mb-2"><span className="font-mono text-[13px]">{o.id}</span><span className="font-bold">{money(o.total)}</span></div><div className="text-[12px] text-sub mb-2">{o.name} · {o.items}</div><div className="flex flex-wrap gap-1.5"><PayPill s={o.pay}/><SettlePill s={o.settle}/><FulfillPill s={o.fulfill}/></div></button>))}</div>
+    </>)}
+
+    {/* mobile filter sheet */}
+    {sheet&&<div className="sm:hidden fixed inset-0 z-40" onClick={()=>setSheet(false)}><div className="absolute inset-0 bg-ink/20"/><div className="absolute bottom-0 inset-x-0 bg-white rounded-t-2xl p-5 sheet space-y-4" onClick={e=>e.stopPropagation()}><div className="w-10 h-1 rounded-full bg-line mx-auto"/><h3 className="font-semibold">Filters</h3>{[['pay','Payment',['Paid','Failed']],['settle','Settlement',['Settling','Settled','On hold']],['fulfill','Fulfillment',['Confirmed','Preparing','Shipped','Delivered','Canceled']],['method','Method',['Apple Pay','Google Pay','Visa','PayPal','Stablecoin']]].map(([k,label,opts])=>(<div key={k}><div className="text-[12px] font-medium text-sub mb-1.5">{label}</div><div className="flex flex-wrap gap-1.5">{opts.map(o=>(<button key={o} onClick={()=>setF({...f,[k]:f[k]===o?'':o})} className={`px-2.5 py-1.5 rounded-full text-[12px] font-medium ${f[k]===o?'bg-moss-600 text-white':'bg-sand text-sub'}`}>{o}</button>))}</div></div>))}<div className="flex gap-2 pt-2"><Btn variant="ghost" onClick={clear}>Clear</Btn><Btn onClick={()=>setSheet(false)}>Apply ({list.length})</Btn></div></div></div>}
+  </div>);
+}
+
+function OrderDrawer({o,onClose}){
+  return (<div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}><div className="absolute inset-0 bg-ink/20"/><div className="relative w-full max-w-md bg-white h-full shadow-pop p-6 overflow-auto slide" onClick={e=>e.stopPropagation()}>
+    <div className="flex items-center justify-between mb-5"><h3 className="text-[18px] font-bold font-mono">{o.id}</h3><button onClick={onClose} className="text-sub hover:text-ink text-2xl leading-none">×</button></div>
+    <div className="flex flex-wrap gap-2 mb-6"><PayPill s={o.pay}/><SettlePill s={o.settle}/><FulfillPill s={o.fulfill}/></div>
+    <Sec title="Order"><KV k="Customer" v={o.name}/><KV k="Email" v={o.buyer}/><KV k="Items" v={o.items}/><KV k="Total" v={money(o.total)}/><KV k="Placed" v={o.date+', 2026'}/></Sec>
+    <Sec title="Payment"><KV k="Method" v={o.method}/><KV k="Status" v={o.pay}/><KV k="Payment reference" v={'mref_'+o.id.toLowerCase().replace('-','')}/></Sec>
+    <Sec title="Settlement"><KV k="You receive" v="USDm"/><KV k="Status" v={o.settle}/><KV k="Destination" v="Treasury · 0x7a3f…be21"/>{o.settle==='On hold'&&<div className="px-3.5 py-2.5 text-[12px] text-red-600 bg-red-50">This settlement is briefly on hold for a routine check. No action needed — our team is on it.</div>}</Sec>
+    {o.pay!=='Failed'&&<div className="flex gap-2 mt-4"><Btn variant="ghost" size="sm">Mark as shipped</Btn><Btn variant="ghost" size="sm">Export</Btn></div>}
+  </div></div>);
+}
+const Sec=({title,children})=>(<div className="mb-5"><div className="text-[11px] font-semibold text-sub uppercase tracking-wide mb-2">{title}</div><div className="rounded-xl border border-line divide-y divide-line overflow-hidden">{children}</div></div>);
+const KV=({k,v})=>(<div className="flex justify-between gap-4 px-3.5 py-2.5 text-[13px]"><span className="text-sub">{k}</span><span className="font-medium text-right break-all">{v}</span></div>);
+
+/* ---- products ---- */
+function Products(){
+  const subtabs=['Active','Drafts','Out of stock'];
+  const [sub,setSub]=useState('Active');
+  const list=seedProducts.filter(p=>sub==='Active'?p.status==='Active':sub==='Drafts'?p.status==='Draft':p.status==='Out of stock');
+  return (<div className="max-w-4xl">
+    <Tabs tabs={subtabs} active={sub} onChange={setSub}/>
+    <div className="flex items-center justify-between mb-4"><p className="text-[13px] text-sub">{list.length} products</p><div className="flex gap-2"><Btn variant="ghost" size="sm">Import CSV</Btn><Btn size="sm"><I.plus/> Add product</Btn></div></div>
+    {list.length===0?<Empty icon={<I.products/>} title={`No ${sub.toLowerCase()} products`} body="Products you add will appear here." cta="Add product"/>:(<div className="rounded-2xl bg-white border border-line overflow-hidden divide-y divide-line">{list.map(p=>(<div key={p.id} className="flex items-center gap-3 p-4 hover:bg-sand/40"><div className="w-11 h-11 rounded-lg bg-sand grid place-items-center text-xl">{p.emoji}</div><div className="flex-1 min-w-0"><div className="text-[14px] font-semibold truncate">{p.name}</div><div className="text-[12px] text-sub">SKU {p.sku} {p.research&&<span className="ml-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 text-[10px] font-semibold">Research-use-only</span>}</div></div><div className="text-right"><div className="text-[14px] font-semibold">{money(p.price)}</div><div className="text-[11px] text-sub">{p.stock} in stock</div></div><button className="text-sub hover:text-ink text-[13px] px-2">Edit</button></div>))}</div>)}
+  </div>);
+}
+
+/* ---- customers (v1-optional) ---- */
+function Customers(){
+  return (<div className="max-w-4xl"><Empty icon={<I.users/>} title="Customers — coming in v1" body="Once you’re live, buyers who complete checkout will appear here with their order history and lifetime spend." cta="Preview checkout"/></div>);
+}
+
+/* ---- settlements (Payouts + Configuration) ---- */
+function Settlements(){
+  const [sub,setSub]=useState('Payouts');
+  return (<div className="max-w-4xl"><Tabs tabs={['Payouts','Configuration']} active={sub} onChange={setSub}/>{sub==='Payouts'?<Payouts/>:<SettlementConfig/>}</div>);
+}
+function Payouts(){
+  const rows=[{id:'PO-2291',amount:'$8,420.00',status:'Settled',date:'Jun 10'},{id:'PO-2284',amount:'$3,398.00',status:'Settled',date:'Jun 8'},{id:'PO-2301',amount:'$220.00',status:'Settling',date:'Jun 11'}];
+  return (<div className="space-y-5">
+    <div className="grid sm:grid-cols-3 gap-3"><div className="rounded-2xl bg-white border border-line p-4"><div className="text-[12px] text-sub">Settled (all time)</div><div className="text-[22px] font-bold mt-1">$12,038.00</div><div className="text-[11px] text-sub">in USDm</div></div><div className="rounded-2xl bg-white border border-line p-4"><div className="text-[12px] text-sub">Currently settling</div><div className="text-[22px] font-bold mt-1">$220.00</div></div><div className="rounded-2xl bg-moss-50 border border-moss-200 p-4"><div className="text-[12px] text-moss-700">Payout asset</div><div className="text-[22px] font-bold mt-1 text-moss-700">USDm</div></div></div>
+    <div className="rounded-2xl bg-white border border-line overflow-hidden"><div className="flex items-center justify-between px-4 py-3 border-b border-line"><h3 className="font-semibold text-[14px]">Payout history</h3><Btn variant="ghost" size="sm"><I.ext/> Export</Btn></div><table className="w-full text-[13px]"><thead><tr className="text-left text-sub bg-sand/50"><th className="px-4 py-2.5 font-medium">Payout</th><th className="px-4 py-2.5 font-medium">Amount</th><th className="px-4 py-2.5 font-medium">Destination</th><th className="px-4 py-2.5 font-medium">Status</th><th className="px-4 py-2.5 font-medium">Date</th></tr></thead><tbody className="divide-y divide-line">{rows.map(r=>(<tr key={r.id}><td className="px-4 py-3 font-mono">{r.id}</td><td className="px-4 py-3 font-semibold">{r.amount}</td><td className="px-4 py-3 text-sub">Treasury · 0x7a3f…be21</td><td className="px-4 py-3"><SettlePill s={r.status}/></td><td className="px-4 py-3 text-sub">{r.date}</td></tr>))}</tbody></table></div>
+  </div>);
+}
+function SettlementConfig(){
+  const [freq,setFreq]=useState('instant');
+  const [verify,setVerify]=useState('confirmed'); // idle|sending|verifying|confirmed|failed
+  const [fail,setFail]=useState(false);
+  const runVerify=()=>{setVerify('sending');setTimeout(()=>setVerify('verifying'),700);setTimeout(()=>setVerify(fail?'failed':'confirmed'),1900);};
+  return (<div className="space-y-5">
+    <Panel title="Settlement asset" desc="The asset you receive for every order. MOSS handles all orchestration.">
+      <div className="flex items-center gap-3 rounded-xl border border-moss-200 bg-moss-50 p-4"><div className="w-10 h-10 rounded-lg bg-moss-100 text-moss-700 grid place-items-center font-bold text-[13px]">US</div><div className="flex-1"><div className="font-semibold">USDm</div><div className="text-[12px] text-sub">Active</div></div><span className="text-moss-600"><I.check/></span></div>
+      <p className="text-[12px] text-sub mt-3">More assets (USDC, USD bank deposit) coming soon.</p>
+    </Panel>
+    <Panel title="Payout destinations" desc="Where your settlements are sent. Treated like a bank account." right={<Btn variant="ghost" size="sm"><I.plus/> Add</Btn>}>
+      <div className="flex items-center gap-3 rounded-xl border border-line p-4"><div className="flex-1"><div className="font-semibold text-[14px]">Peptide Partners — Treasury</div><div className="text-[12px] text-sub font-mono">0x7a3f…be21</div></div><span className="px-2 py-0.5 rounded-full bg-moss-50 text-moss-600 text-[11px] font-semibold">Default · Confirmed</span></div>
+    </Panel>
+    <Panel title="Settlement frequency" desc="When settled funds are sent to your destination.">
+      <div className="grid sm:grid-cols-2 gap-3">{[['instant','Instant','Each order settles as it’s paid.'],['daily','Daily','Settlements batch once per day.']].map(([k,t,d])=>(<button key={k} onClick={()=>setFreq(k)} className={`tap text-left rounded-xl border p-4 ${freq===k?'border-moss-600 bg-moss-50 ring-1 ring-moss-600':'border-line bg-white'}`}><div className="flex items-center justify-between"><span className="font-semibold text-[14px]">{t}</span>{freq===k&&<span className="text-moss-600"><I.check/></span>}</div><div className="text-[12px] text-sub mt-0.5">{d}</div></button>))}</div>
+    </Panel>
+    <Panel title="Verify destination" desc="Send a small test settlement to confirm your destination receives USDm.">
+      <label className="flex items-center gap-2 text-[12px] text-sub mb-3"><input type="checkbox" checked={fail} onChange={e=>setFail(e.target.checked)} className="w-4 h-4 accent-red-500"/> Simulate a failed verification (demo)</label>
+      {verify==='confirmed'&&<div className="rounded-xl bg-moss-50 border border-moss-200 p-4 flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-moss-600 text-white grid place-items-center"><I.check/></span><div className="flex-1"><div className="font-semibold text-[14px] text-moss-700">Destination confirmed</div><div className="text-[12px] text-sub">You’re ready to receive payouts in USDm.</div></div><Btn variant="ghost" size="sm" onClick={()=>setVerify('idle')}>Re-verify</Btn></div>}
+      {verify==='idle'&&<Btn onClick={runVerify}>Send test settlement</Btn>}
+      {(verify==='sending'||verify==='verifying')&&<div className="rounded-xl border border-line p-4 flex items-center gap-3"><span className="w-5 h-5 rounded-full border-2 border-moss-100 border-t-moss-600 spin"/><div className="text-[13px] font-medium">{verify==='sending'?'Sending test settlement…':'Verifying destination…'}</div></div>}
+      {verify==='failed'&&<div className="rounded-xl bg-red-50 border border-red-200 p-4"><div className="font-semibold text-[14px] text-red-600 mb-1">We couldn’t reach that destination</div><div className="text-[12px] text-sub mb-3">Check the payout address and try again. You haven’t lost any funds.</div><Btn variant="ghost" size="sm" onClick={runVerify}>Try again</Btn></div>}
+    </Panel>
+    <div className="rounded-xl bg-sand text-sub text-[12px] px-4 py-3 flex items-center gap-2"><I.shield className="text-moss-600"/> You never manage liquidity, conversions, or network fees. Choose how you get paid — MOSS does the rest.</div>
+  </div>);
+}
+
+/* ---- checkout settings (subtabs) ---- */
+function CheckoutSettings(){
+  const [sub,setSub]=useState('Branding');
+  return (<div className="max-w-3xl"><Tabs tabs={['Branding','Domain','Checkout fields']} active={sub} onChange={setSub}/>
+    {sub==='Branding'&&<Panel title="Branding" desc="How your checkout looks to buyers."><div className="flex items-center gap-4"><div className="w-12 h-12 rounded-xl bg-moss-600 text-white grid place-items-center font-bold">P</div><Btn variant="ghost" size="sm">Replace logo</Btn><div className="flex items-center gap-2 ml-4"><span className="text-[12px] text-sub">Accent</span><span className="w-8 h-8 rounded-lg bg-moss-600 border border-line"/></div></div></Panel>}
+    {sub==='Domain'&&<Panel title="Checkout domain" desc="Where your hosted checkout is served."><Field defaultValue="pay.peptidepartners.com"/></Panel>}
+    {sub==='Checkout fields'&&<Panel title="Checkout fields" desc="Choose what buyers are asked at checkout.">{[['Shipping address',1],['Phone number',1],['Order notes',0],['Research-use attestation',1]].map(([n,on])=>(<div key={n} className="flex items-center justify-between py-2 border-b border-line last:border-0"><span className="text-[13px]">{n}</span><Toggle on={!!on} onClick={()=>{}}/></div>))}</Panel>}
+  </div>);
+}
+
+/* ---- payment methods ---- */
+function PaymentMethods(){
+  const [m,setM]=useState({apple:true,google:true,card:true,paypal:true,stable:false});
+  const rows=[['apple','Apple Pay','One-tap on iPhone & Mac'],['google','Google Pay','One-tap on Android & Chrome'],['card','Credit & debit cards','Visa, Mastercard, Amex'],['paypal','PayPal','Optional'],['stable','Stablecoin balance','Advanced · shown discreetly to buyers who already hold one']];
+  return (<div className="max-w-3xl"><Panel title="Accepted payment methods" desc="Buyers see a familiar checkout regardless of how you settle. However they pay, you receive USDm."><div className="space-y-2">{rows.map(([k,n,d])=>(<div key={k} className="flex items-center gap-3 rounded-xl border border-line p-3.5"><div className="flex-1"><div className="text-[14px] font-semibold">{n}</div><div className="text-[12px] text-sub">{d}</div></div><Toggle on={m[k]} onClick={()=>setM({...m,[k]:!m[k]})}/></div>))}</div></Panel></div>);
+}
+
+/* ---- developers (subtabs) ---- */
+function Developers(){
+  const [sub,setSub]=useState('API keys');
+  return (<div className="max-w-3xl"><div className="rounded-xl bg-sand text-sub text-[12px] px-4 py-3 mb-4">Optional for MVP. Add these to sync orders to your own systems.</div><Tabs tabs={['API keys','Webhooks','Logs']} active={sub} onChange={setSub}/>
+    {sub==='API keys'&&<Panel title="API keys" desc="Use test keys until you go live."><div className="space-y-2"><KeyRow label="Test secret key" value="sk_test_••••••••••••4f2a"/><KeyRow label="Live secret key" value="sk_live_••••••••••••9c01"/></div></Panel>}
+    {sub==='Webhooks'&&<Panel title="Webhooks" desc="We’ll POST order & settlement events to this URL."><Field defaultValue="https://peptidepartners.com/api/moss-webhook"/><div className="mt-3"><KeyRow label="Signing secret" value="whsec_••••••••••••7b3d"/></div><div className="mt-3 flex flex-wrap gap-1.5">{['order.confirmed','order.preparing','order.shipped','settlement.settling','settlement.settled'].map(e=>(<span key={e} className="px-2 py-1 rounded-md bg-sand text-[11px] font-mono text-sub">{e}</span>))}</div></Panel>}
+    {sub==='Logs'&&<Panel title="Event logs" desc="Recent webhook deliveries."><div className="divide-y divide-line">{[['settlement.settled','200','Jun 11 10:21'],['order.shipped','200','Jun 10 14:03'],['order.confirmed','200','Jun 10 14:01']].map(([e,s,t])=>(<div key={t} className="flex items-center gap-3 py-2.5 text-[12px]"><span className="font-mono flex-1">{e}</span><span className="px-1.5 py-0.5 rounded bg-moss-50 text-moss-600 font-semibold">{s}</span><span className="text-sub w-28 text-right">{t}</span></div>))}</div></Panel>}
+  </div>);
+}
+const KeyRow=({label,value})=>(<div className="flex items-center gap-3 rounded-lg border border-line p-3"><div className="flex-1"><div className="text-[11px] text-sub">{label}</div><div className="text-[13px] font-mono">{value}</div></div><button className="text-sub hover:text-ink"><I.copy/></button></div>);
+
+/* ---- settings (subtabs) ---- */
+function SettingsView(){
+  const [sub,setSub]=useState('Team');
+  return (<div className="max-w-3xl"><Tabs tabs={['Team','Business','Notifications','Compliance']} active={sub} onChange={setSub}/>
+    {sub==='Team'&&<Panel title="Team members" desc="Invite teammates to manage your store." right={<Btn variant="ghost" size="sm"><I.plus/> Invite</Btn>}><div className="divide-y divide-line">{[['Chris Rivers','Owner'],['Ops Team','Admin']].map(([n,r])=>(<div key={n} className="flex items-center gap-3 py-3"><div className="w-9 h-9 rounded-full bg-moss-100 text-moss-700 grid place-items-center font-semibold text-[13px]">{n[0]}</div><div className="flex-1"><div className="text-[14px] font-medium">{n}</div><div className="text-[12px] text-sub">{r}</div></div></div>))}</div></Panel>}
+    {sub==='Business'&&<Panel title="Business profile" desc="Verified business details on file."><div className="space-y-3"><KVrow k="Legal name" v="Peptide Partners LLC"/><KVrow k="Country" v="United States"/><KVrow k="Verification" v="✓ Verified"/></div></Panel>}
+    {sub==='Notifications'&&<Panel title="Notifications" desc="Choose what we email you about.">{[['New orders',1],['Settlement completed',1],['Settlement on hold',1],['Weekly summary',0]].map(([n,on])=>(<div key={n} className="flex items-center justify-between py-2 border-b border-line last:border-0"><span className="text-[13px]">{n}</span><Toggle on={!!on} onClick={()=>{}}/></div>))}</Panel>}
+    {sub==='Compliance'&&<div className="space-y-4"><Panel title="Compliance" desc="Trust & safety for your store."><div className="space-y-3 text-[13px]"><div className="flex items-center gap-2 text-moss-700"><I.shield/> Business verified (KYB complete)</div><div className="flex items-center gap-2 text-moss-700"><I.shield/> Payments PCI-handled by our partners</div><div className="flex items-center gap-2 text-moss-700"><I.shield/> Funds settle directly to your destination — MOSS never holds your balance</div></div></Panel><Panel title="Product attestations" desc="Required for research-use-only categories."><div className="text-[13px] text-sub">All research-use-only SKUs display the required “not for human consumption” notice at checkout.</div></Panel></div>}
+  </div>);
+}
+const KVrow=({k,v})=>(<div className="flex justify-between text-[13px] py-1.5 border-b border-line last:border-0"><span className="text-sub">{k}</span><span className="font-medium">{v}</span></div>);
+
+/* ====================================================== ROOT */
+/* ====================================================== PARTNER REGISTRATION
+   A normal-feeling "create account" experience. Behind the scenes this
+   provisions the partner's MOSS account + settlement profile — but the
+   partner never sees a wallet, keys, or funding. (A demo-only reveal explains
+   what's happening for presentation purposes.) */
+const GMark=(p)=><svg viewBox="0 0 24 24" width="17" height="17" {...p}><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2-1.9 3.3-4.7 3.3-7.9z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.5-2.7c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.6H2v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.7 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.6l3.1-3.1A11 11 0 0 0 2 7.1l3.7 2.8C6.6 7.3 9.1 5.4 12 5.4z"/></svg>;
+const AMark=(p)=><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" {...p}><path d="M16.7 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.8-3-.8C7.3 7.5 6 8.4 5.3 9.8c-1.6 2.8-.4 6.9 1.1 9.2.7 1.1 1.6 2.3 2.8 2.3 1.1 0 1.5-.7 2.9-.7s1.7.7 2.9.7 2-1.1 2.7-2.1c.8-1.2 1.2-2.3 1.2-2.4-.1 0-2.2-.9-2.2-3.1zM14.5 6.1c.6-.8 1-1.8.9-2.9-.9 0-2 .6-2.6 1.3-.6.6-1.1 1.7-.9 2.7 1 .1 2-.4 2.6-1.1z"/></svg>;
+const FaceGlyph=({size=26})=><svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 10v1M15 10v1M12 10v3l-1 1M9.5 15.5a3.5 3.5 0 0 0 5 0"/></svg>;
+/* Simulated OS passkey sheet (merchant). The one on-chain/web3 moment. */
+function PasskeySheetM({phase,onAuthorize}){
+  return (<div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"><div className="absolute inset-0 bg-black/40"/>
+    <div className="relative w-full sm:max-w-[360px] bg-white rounded-t-3xl sm:rounded-3xl shadow-pop p-6 anim">
+      <div className="flex items-center gap-3 mb-5"><div className="w-10 h-10 rounded-xl bg-moss-600 text-white grid place-items-center font-bold">M</div><div className="leading-tight text-left"><div className="text-[14px] font-semibold">MOSS for Partners</div><div className="text-[12px] text-sub">partners.moss.xyz</div></div></div>
+      <div className="text-center py-3">
+        {phase==='done'?(<div className="mx-auto w-16 h-16 rounded-full bg-moss-50 text-moss-600 grid place-items-center"><I.check/></div>):phase==='signing'?(<div className="mx-auto w-16 h-16 rounded-full border-[3px] border-moss-100 border-t-moss-600 spin"/>):(<div className="mx-auto w-16 h-16 rounded-2xl bg-ink/5 text-ink grid place-items-center"><FaceGlyph size={36}/></div>)}
+        <h3 className="text-[16px] font-bold mt-4">{phase==='done'?'Account activated':phase==='signing'?'Activating…':'Use Face ID to continue'}</h3>
+        <p className="text-[12px] text-sub mt-1">{phase==='done'?'Your settlement account is ready.':phase==='signing'?'Setting up your on-chain settlement account.':'Sign with your MOSS passkey for "Peptide Partners".'}</p>
+      </div>
+      {phase==='prompt'&&<button onClick={onAuthorize} className="tap w-full h-[48px] rounded-xl bg-moss-600 hover:bg-moss-700 text-white font-semibold text-[14px]">Continue</button>}
+    </div></div>);
+}
+
+function Registration({onDone}){
+  const [mode,setMode]=useState('form'); // form | passkey | provisioning
+  const [provStep,setProvStep]=useState(0);
+  const [reveal,setReveal]=useState(false);
+  const [sheetOpen,setSheetOpen]=useState(false);
+  const [sheetPhase,setSheetPhase]=useState('prompt'); // prompt | signing | done
+  const stages=['Activating your account…','Preparing your partner workspace…','Finalizing your settlement profile…'];
+  const create=()=>{setMode('passkey');setReveal(false);};
+  const runProvision=()=>{setMode('provisioning');setProvStep(0);
+    setTimeout(()=>setProvStep(1),950);setTimeout(()=>setProvStep(2),1850);setTimeout(()=>onDone(),2750);};
+  const openSheet=()=>{setSheetPhase('prompt');setSheetOpen(true);};
+  const authorize=()=>{setSheetPhase('signing');setTimeout(()=>setSheetPhase('done'),1200);setTimeout(()=>{setSheetOpen(false);runProvision();},2000);};
+
+  return (<div className="min-h-screen flex">
+    {/* brand panel */}
+    <aside className="hidden lg:flex flex-col justify-between w-[44%] bg-gradient-to-br from-moss-600 to-moss-700 text-white p-12">
+      <div className="flex items-center gap-2"><div className="w-8 h-8 rounded-lg bg-white/15 grid place-items-center font-bold text-sm">M</div><span className="font-semibold">MOSS <span className="text-white/60 font-normal">for Partners</span></span></div>
+      <div>
+        <h1 className="text-[34px] font-bold leading-[1.1] tracking-tight">Accept payments.<br/>Get paid in USDm.</h1>
+        <p className="text-white/80 mt-3 text-[15px] max-w-sm">Set up a premium checkout in minutes. Buyers pay how they like; you settle in USDm — with zero crypto to manage.</p>
+        <ul className="mt-6 space-y-2.5 text-[13.5px]">{['No wallets, keys, or treasury ops','Settle in USDm from day one','A dashboard that feels like Stripe'].map(x=>(<li key={x} className="flex items-center gap-2"><I.check/> {x}</li>))}</ul>
+      </div>
+      <div className="text-[11px] text-white/55 flex items-center gap-1.5"><I.shield/> SOC 2 infrastructure · your account is secured for you</div>
+    </aside>
+
+    {/* form / provisioning */}
+    <main className="flex-1 grid place-items-center p-6">
+      <div key={mode} className="w-full max-w-sm anim">
+        {mode==='provisioning'?(
+          <div className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full border-[3px] border-moss-100 border-t-moss-600 spin mb-6"/>
+            <h2 className="text-[18px] font-bold">{stages[provStep]}</h2>
+            <p className="text-[13px] text-sub mt-1.5">This only takes a moment — no setup needed from you.</p>
+            <div className="mt-6">
+              <button onClick={()=>setReveal(r=>!r)} className="text-[11px] font-semibold text-amber-600 inline-flex items-center gap-1">{reveal?'Hide':'What’s happening?'} <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">DEMO ONLY</span></button>
+              {reveal&&<div className="mt-2 text-left rounded-xl bg-amber-50/60 p-3 text-[11px] text-amber-700/90 leading-relaxed anim">MOSS is provisioning a secure account and settlement profile for you in the background. There’s no wallet to create, no keys to back up, and nothing to fund — you just sign in and get paid. Partners never see this step; it’s shown here for the demo.</div>}
+            </div>
+          </div>
+        ):mode==='passkey'?(
+          <div className="text-center">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-moss-50 text-moss-600 grid place-items-center mb-4"><FaceGlyph/></div>
+            <h1 className="text-[24px] font-bold tracking-tight">Sign with your MOSS passkey</h1>
+            <p className="text-[13px] text-sub mt-1.5 mb-5 max-w-[340px] mx-auto">One quick signature activates your account and on-chain settlement profile. This is the only blockchain step — you’ll never do it again.</p>
+            <ul className="text-left max-w-[300px] mx-auto space-y-2 mb-6">{[['One-time on-chain setup'],['Secured by Face ID / Touch ID'],['No keys or seed phrases to manage']].map(([t])=>(<li key={t} className="flex items-center gap-2.5 text-[13px] text-ink/75"><span className="w-5 h-5 rounded-full bg-moss-50 text-moss-600 grid place-items-center flex-none"><I.shield/></span>{t}</li>))}</ul>
+            <button onClick={openSheet} className="tap w-full h-[48px] rounded-xl bg-moss-600 hover:bg-moss-700 text-white font-semibold text-[14px]">Sign with passkey</button>
+            <button onClick={()=>setReveal(r=>!r)} className="mt-3 text-[12px] text-ink/45 hover:text-ink/70">What does this do?</button>
+            {reveal&&<div className="mt-2 text-left rounded-xl bg-amber-50/60 p-3 text-[12px] text-amber-700/90 leading-relaxed anim"><span className="font-semibold">One-time, on-chain:</span> your passkey creates your MOSS settlement account so payouts can land in USDm. It’s the single web3 step in the whole product — after this, everything feels like a normal payments dashboard.</div>}
+          </div>
+        ):(
+          <div>
+            <div className="flex items-center gap-2 mb-7 lg:hidden"><div className="w-8 h-8 rounded-lg bg-moss-600 text-white grid place-items-center font-bold text-sm">M</div><span className="font-semibold">MOSS <span className="text-sub font-normal">for Partners</span></span></div>
+            <h1 className="text-[24px] font-bold tracking-tight">Create your partner account</h1>
+            <p className="text-[13px] text-sub mt-1.5 mb-6">Start accepting payments in minutes. No crypto knowledge required.</p>
+            <div className="space-y-2.5">
+              <button onClick={create} className="tap w-full h-[48px] rounded-xl border border-line hover:border-ink/25 bg-white flex items-center justify-center gap-2.5 text-[14px] font-semibold"><GMark/> Continue with Google</button>
+              <button onClick={create} className="tap w-full h-[48px] rounded-xl border border-line hover:border-ink/25 bg-white flex items-center justify-center gap-2.5 text-[14px] font-semibold"><AMark/> Continue with Apple</button>
+            </div>
+            <div className="flex items-center gap-3 py-3 text-[11px] text-sub"><span className="flex-1 h-px bg-line"/>or<span className="flex-1 h-px bg-line"/></div>
+            <div className="space-y-3">
+              <Field label="Work email" defaultValue="ops@peptidepartners.com"/>
+              <Field label="Business name" defaultValue="Peptide Partners LLC"/>
+              <Field label="Create password" type="password" defaultValue="••••••••••"/>
+            </div>
+            <label className="flex items-start gap-2 mt-3 text-[12px] text-sub"><input type="checkbox" defaultChecked className="mt-0.5 w-4 h-4 accent-moss-600"/> I agree to the MOSS Partner Terms.</label>
+            <button onClick={create} className="tap w-full h-[48px] rounded-xl bg-moss-600 hover:bg-moss-700 text-white font-semibold text-[14px] mt-5">Create account</button>
+            <p className="text-center text-[12px] text-sub mt-3">Already have an account? <button onClick={create} className="text-moss-600 font-medium">Sign in</button></p>
+            <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-sub"><I.shield className="text-moss-600"/> Your account is secured for you — nothing to set up.</div>
+          </div>
+        )}
+      </div>
+      {sheetOpen&&<PasskeySheetM phase={sheetPhase} onAuthorize={authorize}/>}
+    </main>
+  </div>);
+}
+
+function App(){
+  const [phase,setPhase]=useState('register'); // register | onboarding | dashboard
+  if(phase==='register')return <Registration onDone={()=>setPhase('onboarding')}/>;
+  if(phase==='onboarding')return <Onboarding onDone={()=>setPhase('dashboard')}/>;
+  return <Dashboard onReset={()=>setPhase('register')}/>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<script>
+  /* Force the classic JSX runtime so this works as a plain, double-clickable
+     file. (Latest @babel/standalone defaults to the automatic runtime, which
+     emits a bare `import` that can't run in a classic <script>.) */
+  (function () {
+    var src = document.getElementById('appsrc').textContent;
+    var out = Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] }).code;
+    (0, eval)(out);
+  })();
+</script>
+</body>
+</html>

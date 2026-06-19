@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Peptide Partners — Secure Checkout (Demo)</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        ink:'#0E1B17', sub:'#5b6b63',
+        moss:{50:'#f0f7f3',100:'#dceee4',200:'#bfe0d0',500:'#1f7a5a',600:'#176349',700:'#114e3a'},
+        sand:'#F7F6F2', line:'#e7eae6',
+      },
+      fontFamily:{sans:['-apple-system','BlinkMacSystemFont','Inter','Segoe UI','Roboto','sans-serif']},
+      boxShadow:{card:'0 1px 2px rgba(14,27,23,.04), 0 12px 40px -12px rgba(14,27,23,.14)', pop:'0 20px 60px -20px rgba(14,27,23,.35)'},
+    }}
+  }
+</script>
+<style>
+  body{background:#f4f6f3;-webkit-font-smoothing:antialiased;color:#0E1B17}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .anim{animation:fadeUp .28s ease both}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spin{animation:spin .8s linear infinite}
+  @keyframes pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+  .pop{animation:pop .45s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes bar{from{width:0}to{width:100%}}
+  .bar{animation:bar 2.6s ease forwards}
+  .tap{transition:transform .08s ease, box-shadow .2s ease}
+  .tap:active{transform:scale(.99)}
+  input:focus{outline:none}
+  ::placeholder{color:#9aa39d}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/plain" id="appsrc">
+const { useState, useEffect, useRef, createContext, useContext, useMemo } = React;
+
+/* ============================== icons ============================== */
+const Lock=(p)=><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" {...p}><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>;
+const Check=(p)=><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 6 9 17l-5-5"/></svg>;
+const Chevron=(p)=><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="m9 18 6-6-6-6"/></svg>;
+const ArrowLeft=(p)=><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="m15 18-6-6 6-6"/></svg>;
+const Bag=(p)=><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="M6 7h12l1 13H5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>;
+const Close=(p)=><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="M18 6 6 18M6 6l12 12"/></svg>;
+const Shield=(p)=><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>;
+const AppleMark=(p)=><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" {...p}><path d="M16.7 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.8-3-.8C7.3 7.5 6 8.4 5.3 9.8c-1.6 2.8-.4 6.9 1.1 9.2.7 1.1 1.6 2.3 2.8 2.3 1.1 0 1.5-.7 2.9-.7s1.7.7 2.9.7 2-1.1 2.7-2.1c.8-1.2 1.2-2.3 1.2-2.4-.1 0-2.2-.9-2.2-3.1zM14.5 6.1c.6-.8 1-1.8.9-2.9-.9 0-2 .6-2.6 1.3-.6.6-1.1 1.7-.9 2.7 1 .1 2-.4 2.6-1.1z"/></svg>;
+const GoogleMark=(p)=><svg viewBox="0 0 24 24" width="18" height="18" {...p}><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2-1.9 3.3-4.7 3.3-7.9z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.5-2.7c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.6H2v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.7 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.6l3.1-3.1A11 11 0 0 0 2 7.1l3.7 2.8C6.6 7.3 9.1 5.4 12 5.4z"/></svg>;
+const MailMark=(p)=><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" {...p}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>;
+const PasskeyMark=(p)=><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" {...p}><circle cx="9" cy="9" r="4"/><path d="M9 13c-3 0-5 2-5 4v2h7"/><circle cx="17" cy="14" r="2"/><path d="M17 16v5l1.5-1.5L20 21v-5"/></svg>;
+const CardMark=(p)=><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" {...p}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>;
+const CoinMark=(p)=><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" {...p}><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5h4.5a1.5 1.5 0 0 1 0 3H10a1.5 1.5 0 0 0 0 3H15"/></svg>;
+
+/* ============================== data ============================== */
+const MERCHANT={name:'Peptide Partners',tagline:'Research-use-only supplies',initial:'P',disclaimer:'Research-use-only. Not for human consumption.',payoutLabel:'Treasury',payoutAddressMasked:'0x7a3f…be21'};
+const PRODUCTS=[
+  {id:'sku_001',slug:'bpc-157',name:'BPC-157 · 5mg',blurb:'Lyophilized research peptide, 5mg per vial.',description:'A stabilized 15-amino-acid research peptide supplied as a lyophilized powder. Sold strictly for in-vitro laboratory research. Each vial is sealed and lot-tracked.',price:42,emoji:'🧪',researchOnly:true,stock:120,badge:'Best seller'},
+  {id:'sku_002',slug:'tb-500',name:'TB-500 · 5mg',blurb:'Synthetic research fragment, 5mg per vial.',description:'A synthetic thymosin-beta-4 research fragment supplied lyophilized. For laboratory research use only. Not for human or veterinary use.',price:55,emoji:'🧬',researchOnly:true,stock:64},
+  {id:'sku_003',slug:'bac-water',name:'Bacteriostatic Water · 30ml',blurb:'Sterile diluent for reconstitution.',description:'Sterile bacteriostatic water with 0.9% benzyl alcohol, 30ml multi-dose vial. A general-purpose laboratory diluent.',price:14,emoji:'💧',researchOnly:false,stock:340},
+  {id:'sku_004',slug:'ghk-cu',name:'GHK-Cu · 50mg',blurb:'Copper tripeptide research powder, 50mg.',description:'A copper-binding tripeptide research compound supplied as a lyophilized powder, 50mg per vial. For in-vitro research only.',price:68,emoji:'🔬',researchOnly:true,stock:28,badge:'Low stock'},
+  {id:'sku_005',slug:'vial-kit',name:'Sterile Vial Kit',blurb:'Empty sterile vials, stoppers & seals (10-pack).',description:'A 10-pack of empty sterile glass vials with rubber stoppers and aluminum seals for laboratory storage and reconstitution.',price:9,emoji:'🧫',researchOnly:false,stock:210},
+  {id:'sku_006',slug:'syringes',name:'Research Syringes · 30-pack',blurb:'Graduated lab syringes for measured dosing.',description:'Disposable graduated syringes for accurate laboratory measurement and transfer. 30 per box, individually wrapped.',price:18,emoji:'💉',researchOnly:false,stock:150},
+];
+const SHIP=6.5;
+const SEED_ORDERS=[
+  {id:'PP-1M3R',items:'BPC-157 ×1',total:48.5,method:'Google Pay',settle:'settled',date:'Jun 10'},
+  {id:'PP-8Z0A',items:'Bacteriostatic Water ×4',total:62.5,method:'PayPal',settle:'settled',date:'Jun 9'},
+  {id:'PP-4K9D',items:'TB-500 ×1',total:61.5,method:'Card',settle:'settling',date:'Jun 11'},
+];
+const METHOD_LABEL={apple_pay:'Apple Pay',google_pay:'Google Pay',card:'Card',paypal:'PayPal',stablecoin:'Stablecoin balance'};
+const money=(n)=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pyusd=(n)=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' USDm';
+
+/* ============================== store (cart + checkout) ============================== */
+const Store=createContext(null);
+const useStore=()=>useContext(Store);
+
+function StoreProvider({children}){
+  const [view,setView]=useState({name:'store'}); // {name:'store'|'product'|'cart'|'dashboard', slug?}
+  const [lines,setLines]=useState([]);
+  // checkout
+  const [open,setOpen]=useState(false);
+  const [status,setStatus]=useState('awaiting_login'); // 8-state machine
+  const [account,setAccount]=useState(null);
+  const [customer,setCustomer]=useState(null);
+  const [method,setMethod]=useState(null);
+  const [error,setError]=useState(null);
+  const [order,setOrder]=useState(null);
+  const timers=useRef([]);
+
+  useEffect(()=>()=>timers.current.forEach(clearTimeout),[]);
+
+  const count=lines.reduce((n,l)=>n+l.qty,0);
+  const subtotal=lines.reduce((n,l)=>n+l.product.price*l.qty,0);
+  const shipping=lines.length?SHIP:0;
+  const total=subtotal+shipping;
+
+  const add=(product,qty=1)=>setLines(p=>{const e=p.find(l=>l.product.id===product.id);return e?p.map(l=>l.product.id===product.id?{...l,qty:l.qty+qty}:l):[...p,{product,qty}];});
+  const setQty=(id,qty)=>setLines(p=>p.map(l=>l.product.id===id?{...l,qty}:l).filter(l=>l.qty>0));
+  const remove=(id)=>setLines(p=>p.filter(l=>l.product.id!==id));
+
+  const go=(name,slug)=>{window.scrollTo(0,0);setView({name,slug});};
+
+  const resetCheckout=()=>{timers.current.forEach(clearTimeout);timers.current=[];setStatus('awaiting_login');setAccount(null);setCustomer(null);setMethod(null);setError(null);};
+  const openCheckout=()=>{if(!lines.length)return;resetCheckout();setOpen(true);};
+  const closeCheckout=()=>setOpen(false);
+  const back=()=>{setError(null);setStatus(s=>s==='awaiting_passkey'?'awaiting_login':s==='awaiting_customer_info'?'awaiting_login':s==='awaiting_payment'?'awaiting_customer_info':s==='failed'?'awaiting_payment':(setOpen(false),s));};
+
+  const signIn=(provider,email='chris@example.com')=>{
+    setStatus('provisioning');
+    // New accounts do the one-time MOSS passkey setup; returning accounts skip it.
+    const returning=['returning@example.com'].includes(email.toLowerCase());
+    const t=setTimeout(()=>{setAccount({email,returning});setStatus(returning?'awaiting_customer_info':'awaiting_passkey');},provider==='passkey'?500:850);
+    timers.current.push(t);};
+  const confirmPasskey=()=>setStatus('awaiting_customer_info');
+  const submitCustomer=(info)=>{setCustomer(info);setStatus('awaiting_payment');};
+  const pay=(chosen,decline=false)=>{
+    setMethod(chosen);setError(null);setStatus('processing_payment');
+    const t=setTimeout(()=>{
+      if(decline){setStatus('failed');setError('declined');return;}
+      const o={orderNumber:'PP-'+Math.random().toString(36).slice(2,7).toUpperCase(),amount:total,method:chosen,reference:'mref_'+Math.random().toString(36).slice(2,12),merchantReceives:total,status:'paid',createdAt:new Date().toISOString()};
+      setOrder(o);setStatus('paid');setLines([]);
+      const t1=setTimeout(()=>{setStatus('settling');setOrder(x=>x&&{...x,status:'settling'});},1300);
+      const t2=setTimeout(()=>{setStatus('settled');setOrder(x=>x&&{...x,status:'settled'});},3500);
+      timers.current.push(t1,t2);
+    },1600);
+    timers.current.push(t);
+  };
+  const finish=(to)=>{setOpen(false);go(to);setTimeout(resetCheckout,400);};
+
+  const val={view,go,lines,count,subtotal,shipping,total,add,setQty,remove,
+    open,status,account,customer,method,error,order,openCheckout,closeCheckout,back,signIn,confirmPasskey,submitCustomer,pay,finish};
+  return <Store.Provider value={val}>{children}</Store.Provider>;
+}
+
+/* ============================== shared atoms ============================== */
+function Spinner({size=18,cls='text-white'}){return <span className={`inline-block rounded-full border-2 border-current/25 border-t-current spin ${cls}`} style={{width:size,height:size}}/>;}
+function PrimaryBtn({children,onClick,disabled,loading,variant='primary'}){
+  const v={primary:'bg-moss-600 hover:bg-moss-700 text-white',dark:'bg-black hover:bg-zinc-800 text-white',ghost:'bg-white border border-line hover:border-ink/25 text-ink'};
+  return <button onClick={onClick} disabled={disabled||loading} className={`tap w-full h-[52px] rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 disabled:opacity-40 ${v[variant]}`}>{loading?<Spinner/>:children}</button>;
+}
+function Field({label,err,...p}){return <label className="block"><span className="block text-[12px] font-medium text-sub mb-1">{label}</span><input {...p} className={`w-full h-[48px] rounded-xl border bg-sand px-4 text-[15px] ${err?'border-red-400 bg-red-50':'border-ink/15 focus:border-moss-600'}`}/></label>;}
+function Divider({children}){return <div className="flex items-center gap-3 py-1 text-[11px] text-ink/35"><span className="flex-1 h-px bg-ink/10"/>{children}<span className="flex-1 h-px bg-ink/10"/></div>;}
+const KV=({k,v,mono})=>(<div className="flex justify-between gap-4 text-[13px]"><span className="text-ink/50">{k}</span><span className={`text-ink/85 font-medium text-right break-all ${mono?'font-mono':''}`}>{v}</span></div>);
+
+/* ============================== header ============================== */
+function Header(){
+  const {count,go}=useStore();
+  return (
+    <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-line">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
+        <button onClick={()=>go('store')} className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-moss-600 text-white grid place-items-center font-bold">{MERCHANT.initial}</div>
+          <div className="leading-tight text-left"><div className="font-semibold text-[15px]">{MERCHANT.name}</div><div className="text-[11px] text-sub">{MERCHANT.tagline}</div></div>
+        </button>
+        <nav className="ml-auto flex items-center gap-1">
+          <button onClick={()=>go('dashboard')} className="text-[13px] text-sub hover:text-ink px-3 py-2 rounded-lg hidden sm:block">Partner dashboard</button>
+          <button onClick={()=>go('cart')} className="relative flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-sand text-ink">
+            <Bag/>{count>0&&<span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-moss-600 text-white text-[11px] font-bold grid place-items-center">{count}</span>}
+          </button>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+/* ============================== storefront ============================== */
+function ProductCard({product}){
+  const {add,go}=useStore();
+  return (
+    <div className="group rounded-2xl bg-white border border-line overflow-hidden shadow-card hover:shadow-pop transition-shadow">
+      <button onClick={()=>go('product',product.slug)} className="block w-full">
+        <div className="aspect-[4/3] bg-sand grid place-items-center text-6xl relative">{product.emoji}{product.badge&&<span className="absolute top-3 left-3 text-[11px] font-semibold px-2 py-1 rounded-full bg-white/90 text-ink">{product.badge}</span>}</div>
+      </button>
+      <div className="p-4">
+        <button onClick={()=>go('product',product.slug)} className="text-left"><h3 className="font-semibold text-[15px] leading-tight hover:text-moss-700">{product.name}</h3></button>
+        <p className="text-[12px] text-sub mt-1 line-clamp-2 min-h-[32px]">{product.blurb}</p>
+        <div className="flex items-center justify-between mt-3">
+          <span className="font-bold text-[16px]">{money(product.price)}</span>
+          <button onClick={()=>{add(product);go('cart');}} className="tap text-[13px] font-semibold text-moss-700 hover:text-moss-600 px-3 py-1.5 rounded-lg bg-moss-50">Add</button>
+        </div>
+        {product.researchOnly&&<div className="mt-2 flex items-center gap-1 text-[10px] text-sub"><Shield className="text-moss-600"/> Research-use-only</div>}
+      </div>
+    </div>
+  );
+}
+function StorefrontView(){
+  return (
+    <div>
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-6">
+        <div className="rounded-3xl bg-gradient-to-br from-moss-600 to-moss-700 text-white p-8 sm:p-12 relative overflow-hidden">
+          <div className="relative z-10 max-w-lg">
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-white/15 rounded-full px-2.5 py-1 mb-4"><Shield/> Lab-grade · lot-tracked</div>
+            <h1 className="text-[32px] sm:text-[40px] font-bold leading-[1.05] tracking-tight">Research peptides &amp; supplies, shipped fast.</h1>
+            <p className="text-white/80 mt-3 text-[15px]">Premium research-use-only catalog with a checkout that just works. Pay how you like — we handle the rest.</p>
+          </div>
+          <div className="absolute -right-6 -bottom-6 text-[160px] opacity-20 select-none">🧪</div>
+        </div>
+      </section>
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-16">
+        <div className="flex items-baseline justify-between mb-4"><h2 className="text-[18px] font-bold">Shop all</h2><span className="text-[13px] text-sub">{PRODUCTS.length} products</span></div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">{PRODUCTS.map(p=><ProductCard key={p.id} product={p}/>)}</div>
+        <p className="text-center text-[11px] text-sub mt-8">{MERCHANT.disclaimer}</p>
+      </section>
+    </div>
+  );
+}
+
+/* ============================== product detail ============================== */
+function ProductView({slug}){
+  const {add,go}=useStore();
+  const product=PRODUCTS.find(p=>p.slug===slug);
+  const [qty,setQty]=useState(1);
+  if(!product)return <div className="max-w-5xl mx-auto px-6 py-20 text-center"><p className="text-sub">Product not found.</p><button onClick={()=>go('store')} className="text-moss-700 font-semibold">← Back to store</button></div>;
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <button onClick={()=>go('store')} className="text-[13px] text-sub hover:text-ink">← All products</button>
+      <div className="grid md:grid-cols-2 gap-8 mt-4">
+        <div className="rounded-3xl bg-sand aspect-square grid place-items-center text-[140px] shadow-card">{product.emoji}</div>
+        <div>
+          {product.badge&&<span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-moss-50 text-moss-700">{product.badge}</span>}
+          <h1 className="text-[28px] font-bold tracking-tight mt-2">{product.name}</h1>
+          <div className="text-[22px] font-bold mt-1">{money(product.price)}</div>
+          <p className="text-[14px] text-sub mt-4 leading-relaxed">{product.description}</p>
+          <div className="flex items-center gap-3 mt-6">
+            <div className="flex items-center border border-line rounded-xl"><button onClick={()=>setQty(q=>Math.max(1,q-1))} className="w-10 h-11 text-lg text-sub">−</button><span className="w-8 text-center font-semibold">{qty}</span><button onClick={()=>setQty(q=>q+1)} className="w-10 h-11 text-lg text-sub">+</button></div>
+            <span className="text-[12px] text-sub">{product.stock} in stock</span>
+          </div>
+          <div className="mt-6 max-w-sm"><PrimaryBtn onClick={()=>{add(product,qty);go('cart');}}>Add to bag · {money(product.price*qty)}</PrimaryBtn></div>
+          {product.researchOnly&&<div className="mt-5 rounded-xl bg-amber-50 text-amber-700 text-[12px] px-4 py-3 flex items-start gap-2"><Shield/><span>{MERCHANT.disclaimer}</span></div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================== cart ============================== */
+function CartView(){
+  const {lines,subtotal,shipping,total,setQty,remove,openCheckout,go}=useStore();
+  return (
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <h1 className="text-[24px] font-bold mb-1">Your bag</h1>
+      {!lines.length?(
+        <div className="rounded-2xl border border-dashed border-line bg-white/60 py-16 text-center mt-4">
+          <div className="mx-auto w-12 h-12 rounded-2xl bg-sand text-sub grid place-items-center mb-3"><Bag/></div>
+          <p className="font-semibold">Your bag is empty</p><p className="text-[13px] text-sub mt-1 mb-4">Add a few research supplies to get started.</p>
+          <button onClick={()=>go('store')} className="text-moss-700 font-semibold text-[14px]">Browse products →</button>
+        </div>
+      ):(<>
+        <p className="text-[13px] text-sub mb-5">{lines.length} items from {MERCHANT.name}</p>
+        <div className="space-y-3">{lines.map(l=>(
+          <div key={l.product.id} className="flex items-center gap-3 bg-white rounded-2xl border border-line p-3">
+            <div className="w-14 h-14 rounded-xl bg-sand grid place-items-center text-2xl">{l.product.emoji}</div>
+            <div className="flex-1 min-w-0"><div className="text-[14px] font-semibold truncate">{l.product.name}</div><div className="text-[12px] text-sub">{money(l.product.price)} each</div><button onClick={()=>remove(l.product.id)} className="text-[11px] text-sub hover:text-red-500 mt-0.5">Remove</button></div>
+            <div className="flex items-center border border-line rounded-lg"><button onClick={()=>setQty(l.product.id,l.qty-1)} className="w-8 h-9 text-sub">−</button><span className="w-7 text-center text-[13px] font-semibold">{l.qty}</span><button onClick={()=>setQty(l.product.id,l.qty+1)} className="w-8 h-9 text-sub">+</button></div>
+            <div className="w-16 text-right text-[14px] font-semibold">{money(l.product.price*l.qty)}</div>
+          </div>
+        ))}</div>
+        <div className="bg-white rounded-2xl border border-line p-5 mt-5">
+          <div className="space-y-2 text-[13px]">
+            <div className="flex justify-between text-sub"><span>Subtotal</span><span className="text-ink/80">{money(subtotal)}</span></div>
+            <div className="flex justify-between text-sub"><span>Shipping</span><span className="text-ink/80">{money(shipping)}</span></div>
+            <div className="flex justify-between pt-2 border-t border-line text-[16px] font-bold"><span>Total</span><span>{money(total)}</span></div>
+          </div>
+          <div className="mt-5"><PrimaryBtn onClick={openCheckout}>Checkout · {money(total)}</PrimaryBtn></div>
+          <p className="text-center text-[11px] text-sub mt-3">{MERCHANT.disclaimer}</p>
+        </div>
+      </>)}
+    </div>
+  );
+}
+
+/* ============================== passkey step (buyer) ============================== */
+const FaceGlyph=({size=26})=><svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 10v1M15 10v1M12 10v3l-1 1M9.5 15.5a3.5 3.5 0 0 0 5 0"/></svg>;
+function PasskeyStep(){
+  const {confirmPasskey}=useStore();
+  const [open,setOpen]=useState(false);
+  const [phase,setPhase]=useState('prompt'); // prompt | signing | done
+  const [info,setInfo]=useState(false);
+  const openSheet=()=>{setPhase('prompt');setOpen(true);};
+  const authorize=()=>{setPhase('signing');setTimeout(()=>setPhase('done'),1300);setTimeout(()=>{setOpen(false);confirmPasskey();},2100);};
+  return (<div className="anim text-center">
+    <div className="mx-auto w-14 h-14 rounded-2xl bg-moss-50 text-moss-600 grid place-items-center mb-4"><FaceGlyph/></div>
+    <h1 className="text-[22px] font-bold">Set up your secure account</h1>
+    <p className="text-[13px] text-sub mt-1.5 mb-5 max-w-[320px] mx-auto">Create a passkey to protect your account and check out in one tap next time. Use Face ID, Touch ID, or your device PIN.</p>
+    <ul className="text-left max-w-[300px] mx-auto space-y-2 mb-6">{['One-time setup — never again on this device','No passwords to remember','Works across your devices'].map(t=>(<li key={t} className="flex items-center gap-2.5 text-[13px] text-ink/75"><span className="w-5 h-5 rounded-full bg-moss-50 text-moss-600 grid place-items-center flex-none"><Shield/></span>{t}</li>))}</ul>
+    <PrimaryBtn onClick={openSheet}>Create passkey</PrimaryBtn>
+    <button onClick={()=>setInfo(v=>!v)} className="mt-3 text-[12px] text-ink/45 hover:text-ink/70">What is this?</button>
+    {info&&<div className="mt-2 text-left rounded-xl bg-amber-50/60 p-3 text-[12px] text-amber-700/90 leading-relaxed anim"><span className="font-semibold">One-time, behind the scenes:</span> your passkey also activates your secure MOSS account so payments can settle. It’s the only setup step that ever happens — after this, checkout is just tap-and-pay.</div>}
+    {open&&<PasskeySheet phase={phase} onAuthorize={authorize}/>}
+  </div>);
+}
+function PasskeySheet({phase,onAuthorize}){
+  return (<div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"><div className="absolute inset-0 bg-black/40"/>
+    <div className="relative w-full sm:max-w-[360px] bg-white rounded-t-3xl sm:rounded-3xl shadow-pop p-6 anim">
+      <div className="flex items-center gap-3 mb-5"><div className="w-10 h-10 rounded-xl bg-moss-600 text-white grid place-items-center font-bold">P</div><div className="leading-tight text-left"><div className="text-[14px] font-semibold">Peptide Partners</div><div className="text-[12px] text-sub">pay.peptidepartners.com</div></div></div>
+      <div className="text-center py-3">
+        {phase==='done'?(<div className="mx-auto w-16 h-16 rounded-full bg-moss-50 text-moss-600 grid place-items-center pop"><Check/></div>):phase==='signing'?(<div className="mx-auto w-16 h-16 rounded-full border-[3px] border-moss-100 border-t-moss-600 spin"/>):(<div className="mx-auto w-16 h-16 rounded-2xl bg-ink/5 text-ink grid place-items-center"><FaceGlyph size={36}/></div>)}
+        <h3 className="text-[16px] font-bold mt-4">{phase==='done'?'Passkey created':phase==='signing'?'Verifying…':'Use Face ID to continue'}</h3>
+        <p className="text-[12px] text-sub mt-1">{phase==='done'?'Your account is ready.':phase==='signing'?'Confirming with your device.':'Create a passkey for "Peptide Partners".'}</p>
+      </div>
+      {phase==='prompt'&&<div className="mt-3"><PrimaryBtn onClick={onAuthorize}>Continue</PrimaryBtn></div>}
+    </div></div>);
+}
+
+/* ============================== checkout overlay ============================== */
+function CheckoutOverlay(){
+  const {open,status,back,closeCheckout}=useStore();
+  if(!open)return null;
+  const showBack=['awaiting_passkey','awaiting_customer_info','awaiting_payment','failed'].includes(status);
+  const showClose=!['processing_payment','paid','settling','settled'].includes(status);
+  let Step=null;
+  if(status==='awaiting_login'||status==='provisioning')Step=<SignInStep/>;
+  else if(status==='awaiting_passkey')Step=<PasskeyStep/>;
+  else if(status==='awaiting_customer_info')Step=<ShippingStep/>;
+  else if(status==='awaiting_payment'||status==='failed')Step=<PaymentStep/>;
+  else if(status==='processing_payment')Step=<ProcessingStep/>;
+  else Step=<ConfirmationStep/>;
+  return (
+    <div className="fixed inset-0 z-50 overflow-auto" style={{background:'radial-gradient(1200px 600px at 50% -10%, #f4f6f2, #e4e7e1)'}}>
+      <div className="min-h-full flex flex-col items-center px-4 py-6 sm:py-10">
+        <div className="w-full max-w-[440px]">
+          <div className="flex items-center gap-3 mb-4 px-1">
+            <div className="w-9 h-9 rounded-xl bg-moss-600 text-white grid place-items-center font-bold">{MERCHANT.initial}</div>
+            <div className="leading-tight"><div className="font-semibold text-[15px]">{MERCHANT.name}</div><div className="text-[11px] text-sub">{MERCHANT.tagline}</div></div>
+            <div className="ml-auto flex items-center gap-2"><span className="flex items-center gap-1 text-[11px] text-sub"><Lock/> Secure</span>{showClose&&<button onClick={closeCheckout} className="p-1.5 rounded-lg hover:bg-white/60 text-sub"><Close/></button>}</div>
+          </div>
+          <div className="bg-white rounded-3xl shadow-pop overflow-hidden">
+            {showBack&&<div className="px-5 pt-4"><button onClick={back} className="text-ink/40 hover:text-ink/70 -ml-1 p-1 rounded-lg"><ArrowLeft/></button></div>}
+            <div className="px-5 pb-6 pt-2 sm:px-7">{Step}</div>
+          </div>
+          <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-sub"><Lock/> Secured by <span className="font-semibold text-ink/55">MOSS</span><span className="mx-1">·</span> We never store full card numbers</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SignInStep(){
+  const {signIn,total,status}=useStore();
+  const [mode,setMode]=useState('choose');
+  const [email,setEmail]=useState('chris@example.com');
+  const [code,setCode]=useState(['','','','','','']);
+  const [codeErr,setCodeErr]=useState('');
+  const refs=useRef([]);
+  if(status==='provisioning')return (<div className="py-10 text-center anim"><div className="mx-auto w-10 h-10 rounded-full border-2 border-moss-100 border-t-moss-600 spin mb-5"/><h2 className="text-[18px] font-bold">Setting up your secure account…</h2><p className="text-[13px] text-sub mt-1">One moment — this only happens the first time.</p></div>);
+  if(mode==='code'){
+    const submit=()=>{if(code.join('')==='000000'){setCodeErr('That code expired. Send a new one.');return;}signIn('email',email);};
+    return (<div className="anim"><h1 className="text-[22px] font-bold mb-1">Enter your code</h1><p className="text-[13px] text-sub mb-5">We sent a 6-digit code to <span className="text-ink/80 font-medium">{email}</span>.</p>
+      <div className="flex gap-2 justify-between mb-2">{code.map((c,i)=>(<input key={i} ref={el=>refs.current[i]=el} inputMode="numeric" maxLength={1} value={c} onChange={e=>{const v=e.target.value.replace(/\D/,'');const nc=[...code];nc[i]=v;setCode(nc);setCodeErr('');if(v&&i<5)refs.current[i+1]?.focus();}} onKeyDown={e=>{if(e.key==='Backspace'&&!code[i]&&i>0)refs.current[i-1]?.focus();}} className={`w-full h-14 text-center text-[20px] font-semibold rounded-xl border bg-sand ${codeErr?'border-red-400 bg-red-50':'border-ink/15 focus:border-moss-600'}`}/>))}</div>
+      {codeErr&&<p className="text-[12px] text-red-500 mb-2">{codeErr}</p>}
+      <p className="text-[12px] text-sub mb-5">Didn’t get it? <button className="text-moss-600 font-medium" onClick={()=>{setCode(['','','','','','']);setCodeErr('');}}>Resend code</button> <span className="text-ink/30">· tip: 000000 shows the expired state</span></p>
+      <PrimaryBtn onClick={submit} disabled={code.join('').length<6}>Continue</PrimaryBtn></div>);
+  }
+  if(mode==='email')return (<div className="anim"><h1 className="text-[22px] font-bold mb-1">Sign in to your secure account</h1><p className="text-[13px] text-sub mb-5">We’ll email you a one-time code. No password needed.</p><Field label="Email" type="email" autoFocus value={email} onChange={e=>setEmail(e.target.value)}/><div className="mt-5"><PrimaryBtn onClick={()=>{setMode('code');setTimeout(()=>refs.current[0]?.focus(),50);}} disabled={!email.includes('@')}>Send code</PrimaryBtn></div></div>);
+  return (<div className="anim"><h1 className="text-[22px] font-bold mb-1">Sign in to complete checkout</h1><p className="text-[13px] text-sub mb-1">Your details stay in one secure account, so next time is one tap.</p><p className="text-[13px] text-moss-700 font-semibold mb-5">Order total {money(total)}</p>
+    <div className="space-y-2.5">
+      <SignBtn onClick={()=>signIn('passkey',email)} icon={<PasskeyMark/>} label="Continue with a passkey" sub="Face ID / Touch ID — fastest"/>
+      <SignBtn onClick={()=>signIn('apple',email)} icon={<AppleMark/>} label="Continue with Apple"/>
+      <SignBtn onClick={()=>signIn('google',email)} icon={<GoogleMark/>} label="Continue with Google"/>
+      <Divider>or</Divider>
+      <SignBtn onClick={()=>setMode('email')} icon={<MailMark/>} label="Continue with email"/>
+    </div>
+    <p className="text-center text-[11px] text-sub mt-5">By continuing you agree to {MERCHANT.name}’s terms. Your sign-in is protected by MOSS.</p></div>);
+}
+function SignBtn({onClick,icon,label,sub}){return <button onClick={onClick} className="tap w-full h-[52px] rounded-xl border border-ink/12 hover:border-ink/25 bg-white flex items-center gap-3 px-4 text-left"><span className="text-ink">{icon}</span><span className="flex-1"><span className="block text-[14px] font-semibold leading-tight">{label}</span>{sub&&<span className="block text-[11px] text-sub">{sub}</span>}</span><Chevron className="text-ink/25"/></button>;}
+
+function ShippingStep(){
+  const {submitCustomer,account}=useStore();
+  const [f,setF]=useState({name:'Chris Rivers',email:account?.email||'chris@example.com',address:'',city:'',state:'',zip:'',phone:''});
+  const [save,setSave]=useState(true);const [touched,setTouched]=useState(false);
+  const ok=f.name&&f.address&&f.city&&f.zip;const set=k=>e=>setF({...f,[k]:e.target.value});
+  return (<div className="anim"><h1 className="text-[22px] font-bold mb-1">Shipping details</h1><p className="text-[13px] text-sub mb-5">Signed in as <span className="text-ink/80 font-medium">{f.email}</span></p>
+    <div className="space-y-3"><Field label="Full name" value={f.name} onChange={set('name')} err={touched&&!f.name}/><Field label="Address" placeholder="Street address" value={f.address} onChange={set('address')} err={touched&&!f.address}/>
+      <div className="grid grid-cols-2 gap-3"><Field label="City" value={f.city} onChange={set('city')} err={touched&&!f.city}/><Field label="State" value={f.state} onChange={set('state')}/></div>
+      <div className="grid grid-cols-2 gap-3"><Field label="ZIP" inputMode="numeric" value={f.zip} onChange={set('zip')} err={touched&&!f.zip}/><Field label="Phone (optional)" inputMode="tel" value={f.phone} onChange={set('phone')}/></div></div>
+    <label className="flex items-start gap-3 mt-4 cursor-pointer select-none"><input type="checkbox" checked={save} onChange={e=>setSave(e.target.checked)} className="mt-0.5 w-5 h-5 accent-moss-600 rounded"/><span className="text-[13px] text-ink/70 leading-snug">Save my details securely for faster checkout next time.</span></label>
+    <div className="mt-6"><PrimaryBtn onClick={()=>{if(!ok){setTouched(true);return;}submitCustomer(f);}}>Continue to payment</PrimaryBtn></div></div>);
+}
+
+function PaymentStep(){
+  const {pay,total,error}=useStore();
+  const [cardOpen,setCardOpen]=useState(false);const [showMore,setShowMore]=useState(false);const [decline,setDecline]=useState(false);
+  const [card,setCard]=useState({num:'4242 4242 4242 4242',exp:'04/28',cvc:'123'});
+  return (<div className="anim"><h1 className="text-[22px] font-bold mb-1">Payment</h1><p className="text-[13px] text-sub mb-4">Choose how you’d like to pay {money(total)}.</p>
+    {error==='declined'&&<div className="rounded-xl bg-red-50 border border-red-200 text-red-600 text-[13px] px-4 py-3 mb-4"><div className="font-semibold">Your payment didn’t go through</div><div className="text-red-500/90">No charge was made. Try another payment method to complete your order.</div></div>}
+    <button onClick={()=>pay('apple_pay')} className="tap w-full h-[52px] rounded-xl bg-black text-white font-semibold flex items-center justify-center gap-2 mb-2.5"><AppleMark/> Pay</button>
+    <button onClick={()=>pay('google_pay')} className="tap w-full h-[52px] rounded-xl bg-white border border-ink/15 hover:border-ink/30 font-semibold flex items-center justify-center gap-2 mb-4"><GoogleMark/> Pay</button>
+    <Divider>or pay another way</Divider>
+    <button onClick={()=>setCardOpen(o=>!o)} className="tap w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3 my-2.5"><CardMark className="text-ink/70"/><span className="flex-1 text-left text-[14px] font-semibold">Credit or debit card</span><Chevron className={`text-ink/30 transition-transform ${cardOpen?'rotate-90':''}`}/></button>
+    {cardOpen&&<div className="rounded-xl bg-sand p-4 mb-2.5 space-y-3 anim"><Field label="Card number" inputMode="numeric" value={card.num} onChange={e=>setCard({...card,num:e.target.value})}/><div className="grid grid-cols-2 gap-3"><Field label="Expiry" value={card.exp} onChange={e=>setCard({...card,exp:e.target.value})}/><Field label="CVC" inputMode="numeric" value={card.cvc} onChange={e=>setCard({...card,cvc:e.target.value})}/></div><label className="flex items-center gap-2 text-[12px] text-sub"><input type="checkbox" checked={decline} onChange={e=>setDecline(e.target.checked)} className="w-4 h-4 accent-red-500"/> Simulate a declined payment (demo)</label><PrimaryBtn onClick={()=>pay('card',decline)}>Pay {money(total)}</PrimaryBtn></div>}
+    <button onClick={()=>pay('paypal')} className="tap w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3 mb-2.5"><span className="w-5 h-5 rounded-full bg-[#003087]"/><span className="flex-1 text-left text-[14px] font-semibold">PayPal</span><Chevron className="text-ink/30"/></button>
+    <button onClick={()=>setShowMore(o=>!o)} className="w-full text-center text-[12px] text-ink/45 hover:text-ink/70 py-2">{showMore?'Hide':'More ways to pay'}</button>
+    {showMore&&<button onClick={()=>pay('stablecoin')} className="tap w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3 anim"><CoinMark className="text-ink/70"/><span className="flex-1 text-left"><span className="block text-[14px] font-semibold">Pay with a stablecoin balance</span><span className="block text-[11px] text-sub">Advanced · for buyers who already hold one</span></span><Chevron className="text-ink/30"/></button>}
+    <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-sub"><Lock/> Encrypted and protected by MOSS</div></div>);
+}
+
+function ProcessingStep(){
+  const [phase,setPhase]=useState(0);
+  useEffect(()=>{const t1=setTimeout(()=>setPhase(1),700);const t2=setTimeout(()=>setPhase(2),1400);return()=>{clearTimeout(t1);clearTimeout(t2);};},[]);
+  const phases=['Processing your payment…','Confirming your order…','Almost done…'];
+  return (<div className="py-10 text-center anim"><div className="mx-auto w-12 h-12 rounded-full border-[3px] border-moss-100 border-t-moss-600 spin mb-6"/><h2 className="text-[18px] font-bold">{phases[phase]}</h2><p className="text-[13px] text-sub mt-1.5">Please keep this page open.</p><div className="mt-6 mx-auto max-w-[220px] h-1 rounded-full bg-ink/8 overflow-hidden"><div className="h-full bg-moss-600 bar"/></div></div>);
+}
+
+function ConfirmationStep(){
+  const {order,account,method,finish}=useStore();
+  const [det,setDet]=useState(false);const [demo,setDemo]=useState(false);
+  if(!order)return null;
+  const email=account?.email||'chris@example.com';
+  const settleLabel={paid:'Confirmed',settling:'Settling',settled:'Settled'}[order.status]||'Processing';
+  return (<div className="text-center anim">
+    <div className="mx-auto w-14 h-14 rounded-full bg-moss-50 text-moss-600 grid place-items-center mb-4 pop"><Check/></div>
+    <h1 className="text-[22px] font-bold">Payment confirmed</h1>
+    <p className="text-[13px] text-sub mt-1.5 mb-6">Thanks, {email.split('@')[0]}. We’ve emailed your receipt to <span className="text-ink/80 font-medium">{email}</span>.</p>
+    <div className="text-left rounded-2xl bg-sand p-4 space-y-2.5 mb-4"><KV k="Order number" v={order.orderNumber} mono/><KV k="Total paid" v={money(order.amount)}/><KV k="Payment method" v={METHOD_LABEL[method]}/><KV k="Estimated delivery" v="3–5 business days"/></div>
+    <div className="mb-4 text-left">
+      <button onClick={()=>setDet(o=>!o)} className="text-[12px] text-ink/45 hover:text-ink/70 inline-flex items-center gap-1">Payment details <Chevron className={`transition-transform ${det?'rotate-90':''}`}/></button>
+      {det&&<div className="mt-2 rounded-2xl border border-ink/8 p-4 space-y-2.5 anim">
+        <KV k="Amount charged" v={`${money(order.amount)} USD`}/><KV k="Date" v={new Date(order.createdAt).toLocaleDateString()}/><KV k="Order ID" v={order.orderNumber} mono/><KV k="Payment reference" v={order.reference} mono/><KV k="Processor" v="Card network partner"/><KV k="Secure account" v={email}/>
+        <button className="text-[12px] text-moss-600 font-medium pt-1">Download receipt (PDF)</button>
+        <div className="pt-3 mt-1 border-t border-dashed border-ink/10">
+          <button onClick={()=>setDemo(o=>!o)} className="text-[11px] font-semibold text-amber-600 inline-flex items-center gap-1">{demo?'Hide':'Show'} settlement details <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">DEMO ONLY</span></button>
+          {demo&&<div className="mt-2 rounded-xl bg-amber-50/60 p-3 space-y-2 anim"><p className="text-[10px] text-amber-700/80 leading-snug">Hidden from real buyers. Shown here to illustrate how MOSS settles the merchant.</p><KV k="Settlement asset" v="USDm"/><KV k="Merchant receives" v={pyusd(order.merchantReceives)}/><KV k="Settlement status" v={settleLabel}/><KV k="Settles to" v={`${MERCHANT.payoutLabel} · ${MERCHANT.payoutAddressMasked}`} mono/></div>}
+        </div>
+      </div>}
+    </div>
+    <div className="space-y-2.5"><PrimaryBtn onClick={()=>finish('store')}>Continue shopping</PrimaryBtn><button onClick={()=>finish('dashboard')} className="w-full h-[48px] text-[14px] font-medium text-sub hover:text-ink">View order status</button></div>
+  </div>);
+}
+
+/* ============================== dashboard ============================== */
+function SettleBadge({status}){const m={settling:['bg-amber-50 text-amber-600','bg-amber-500','Settling'],settled:['bg-moss-50 text-moss-600','bg-moss-500','Settled'],paid:['bg-blue-50 text-blue-600','bg-blue-500','Confirmed']}[status]||['bg-blue-50 text-blue-600','bg-blue-500','Confirmed'];return <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold ${m[0]}`}><span className={`w-1.5 h-1.5 rounded-full ${m[1]}`}/>{m[2]}</span>;}
+function DashboardView(){
+  const {order,go}=useStore();
+  const liveSettled=order?.status==='settled';
+  const settledTotal=12038+(liveSettled?order.merchantReceives:0);
+  const live=order&&['paid','settling','settled'].includes(order.status)?{id:order.orderNumber,items:'Current demo order',total:order.amount,method:METHOD_LABEL[order.method],settle:order.status,date:'Now',isLive:true}:null;
+  const rows=[...(live?[live]:[]),...SEED_ORDERS.map(o=>({...o,isLive:false}))];
+  return (<div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+    <div className="flex items-center gap-3 mb-6"><div className="w-10 h-10 rounded-xl bg-moss-600 text-white grid place-items-center font-bold">{MERCHANT.initial}</div><div><div className="font-semibold flex items-center gap-1.5">{MERCHANT.name} <Shield className="text-moss-600"/></div><div className="text-[12px] text-sub">Partner dashboard · preview</div></div><button onClick={()=>go('store')} className="ml-auto text-[13px] text-moss-700 font-semibold">← Back to store</button></div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      {[{l:'Gross sales (30d)',v:money(12480.5+(order&&order.status!=='failed'?order.amount:0))},{l:'Settled to payout',v:pyusd(settledTotal)},{l:'Currently settling',v:order?.status==='settling'?pyusd(order.merchantReceives):'$0.00'},{l:'You get paid in',v:'USDm',a:true}].map(k=>(
+        <div key={k.l} className={`rounded-2xl border p-4 ${k.a?'bg-moss-50 border-moss-200':'bg-white border-line'}`}><div className={`text-[12px] ${k.a?'text-moss-700':'text-sub'}`}>{k.l}</div><div className={`text-[20px] font-bold mt-1 ${k.a?'text-moss-700':''}`}>{k.v}</div></div>))}
+    </div>
+    {live&&<div className="rounded-xl bg-moss-50 border border-moss-200 text-moss-700 text-[13px] px-4 py-3 mb-4 flex items-center gap-2"><Shield/>{live.settle==='settled'?`Your demo order settled — you received ${pyusd(order.merchantReceives)}.`:live.settle==='settling'?'Your demo order is settling now — watch the status update to Settled.':'Payment confirmed — settlement starting…'}</div>}
+    <div className="rounded-2xl bg-white border border-line overflow-hidden"><div className="px-4 py-3 border-b border-line font-semibold text-[14px]">Recent orders</div>
+      <table className="w-full text-[13px]"><thead><tr className="text-left text-sub bg-sand/50"><th className="px-4 py-2.5 font-medium">Order</th><th className="px-4 py-2.5 font-medium">Items</th><th className="px-4 py-2.5 font-medium">Total</th><th className="px-4 py-2.5 font-medium hidden sm:table-cell">Method</th><th className="px-4 py-2.5 font-medium">Settlement</th></tr></thead>
+      <tbody className="divide-y divide-line">{rows.map(o=>(<tr key={o.id} className={o.isLive?'bg-moss-50/40':''}><td className="px-4 py-3 font-mono">{o.id}{o.isLive&&<span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-moss-600 text-white">LIVE</span>}</td><td className="px-4 py-3 text-sub">{o.items}</td><td className="px-4 py-3 font-semibold">{money(o.total)}</td><td className="px-4 py-3 text-sub hidden sm:table-cell">{o.method}</td><td className="px-4 py-3"><SettleBadge status={o.settle}/></td></tr>))}</tbody></table>
+    </div>
+    <div className="mt-4 text-[12px] text-sub flex items-center gap-1.5"><Shield className="text-moss-600"/> MOSS handles all orchestration — you just choose how you get paid.</div>
+  </div>);
+}
+
+/* ============================== app ============================== */
+function Shell(){
+  const {view}=useStore();
+  return (<div className="min-h-screen">
+    {view.name!=='dashboard'&&<Header/>}
+    {view.name==='store'&&<StorefrontView/>}
+    {view.name==='product'&&<ProductView slug={view.slug}/>}
+    {view.name==='cart'&&<CartView/>}
+    {view.name==='dashboard'&&<DashboardView/>}
+    <CheckoutOverlay/>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<StoreProvider><Shell/></StoreProvider>);
+</script>
+<script>
+  /* Force the classic JSX runtime so this works as a plain, double-clickable
+     file. (Latest @babel/standalone defaults to the automatic runtime, which
+     emits a bare `import` that can't run in a classic <script>.) */
+  (function () {
+    var src = document.getElementById('appsrc').textContent;
+    var out = Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] }).code;
+    (0, eval)(out);
+  })();
+</script>
+</body>
+</html>

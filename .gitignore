@@ -1,0 +1,14 @@
+# dependencies / build output
+node_modules
+app/node_modules
+dist
+app/dist
+
+# vercel
+.vercel
+app/.vercel
+
+# local tooling
+.claude
+.DS_Store
+*.local
