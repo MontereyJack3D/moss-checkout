@@ -386,7 +386,7 @@ function ShippingStep(){
 
 function PaymentStep(){
   const {pay,total,error}=useStore();
-  const [cardOpen,setCardOpen]=useState(false);const [showMore,setShowMore]=useState(false);const [decline,setDecline]=useState(false);
+  const [cardOpen,setCardOpen]=useState(false);const [decline,setDecline]=useState(false);
   const [card,setCard]=useState({num:'4242 4242 4242 4242',exp:'04/28',cvc:'123'});
   return (<div className="anim"><h1 className="text-[22px] font-bold mb-1">Payment</h1><p className="text-[13px] text-sub mb-4">Choose how you’d like to pay {money(total)}.</p>
     {error==='declined'&&<div className="rounded-xl bg-red-50 border border-red-200 text-red-600 text-[13px] px-4 py-3 mb-4"><div className="font-semibold">Your payment didn’t go through</div><div className="text-red-500/90">No charge was made. Try another payment method to complete your order.</div></div>}
@@ -395,9 +395,7 @@ function PaymentStep(){
     <Divider>or pay another way</Divider>
     <button onClick={()=>setCardOpen(o=>!o)} className="tap w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3 my-2.5"><CardMark className="text-ink/70"/><span className="flex-1 text-left text-[14px] font-semibold">Credit or debit card</span><Chevron className={`text-ink/30 transition-transform ${cardOpen?'rotate-90':''}`}/></button>
     {cardOpen&&<div className="rounded-xl bg-sand p-4 mb-2.5 space-y-3 anim"><Field label="Card number" inputMode="numeric" value={card.num} onChange={e=>setCard({...card,num:e.target.value})}/><div className="grid grid-cols-2 gap-3"><Field label="Expiry" value={card.exp} onChange={e=>setCard({...card,exp:e.target.value})}/><Field label="CVC" inputMode="numeric" value={card.cvc} onChange={e=>setCard({...card,cvc:e.target.value})}/></div><label className="flex items-center gap-2 text-[12px] text-sub"><input type="checkbox" checked={decline} onChange={e=>setDecline(e.target.checked)} className="w-4 h-4 accent-red-500"/> Simulate a declined payment (demo)</label><PrimaryBtn onClick={()=>pay('card',decline)}>Pay {money(total)}</PrimaryBtn></div>}
-    <button onClick={()=>pay('paypal')} className="tap w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3 mb-2.5"><span className="w-5 h-5 rounded-full bg-[#003087]"/><span className="flex-1 text-left text-[14px] font-semibold">PayPal</span><Chevron className="text-ink/30"/></button>
-    <button onClick={()=>setShowMore(o=>!o)} className="w-full text-center text-[12px] text-ink/45 hover:text-ink/70 py-2">{showMore?'Hide':'More ways to pay'}</button>
-    {showMore&&<button onClick={()=>pay('stablecoin')} className="tap w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3 anim"><CoinMark className="text-ink/70"/><span className="flex-1 text-left"><span className="block text-[14px] font-semibold">Pay with a stablecoin balance</span><span className="block text-[11px] text-sub">Advanced · for buyers who already hold one</span></span><Chevron className="text-ink/30"/></button>}
+    <button onClick={()=>pay('stablecoin')} className="tap w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3 mb-2.5"><CoinMark className="text-ink/70"/><span className="flex-1 text-left"><span className="block text-[14px] font-semibold">Pay with USDm</span><span className="block text-[11px] text-sub">For buyers who hold USDm</span></span><Chevron className="text-ink/30"/></button>
     <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-sub"><Lock/> Encrypted and protected by MOSS</div></div>);
 }
 

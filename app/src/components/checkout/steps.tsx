@@ -226,7 +226,6 @@ export function ShippingStep() {
 export function PaymentStep() {
   const { pay, amount, error } = useCheckout();
   const [cardOpen, setCardOpen] = useState(false);
-  const [showMore, setShowMore] = useState(false);
   const [decline, setDecline] = useState(false);
   const [card, setCard] = useState({ num: '4242 4242 4242 4242', exp: '04/28', cvc: '123' });
 
@@ -275,25 +274,14 @@ export function PaymentStep() {
         </div>
       )}
 
-      <button onClick={() => go('paypal')} className="w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3 mb-2.5">
-        <span className="w-5 h-5 rounded-full bg-[#003087]" />
-        <span className="flex-1 text-left text-[14px] font-semibold">PayPal</span>
+      <button onClick={() => go('stablecoin')} className="w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3 mb-2.5">
+        <CoinMark className="text-ink/70" />
+        <span className="flex-1 text-left">
+          <span className="block text-[14px] font-semibold">{copy.payment.stablecoin}</span>
+          <span className="block text-[11px] text-sub">{copy.payment.stablecoinSub}</span>
+        </span>
         <Chevron className="text-ink/30" />
       </button>
-
-      <button onClick={() => setShowMore((o) => !o)} className="w-full text-center text-[12px] text-ink/45 hover:text-ink/70 py-2">
-        {showMore ? 'Hide' : copy.payment.more}
-      </button>
-      {showMore && (
-        <button onClick={() => go('stablecoin')} className="w-full rounded-xl border border-ink/12 px-4 py-3.5 flex items-center gap-3 animate-fadeUp">
-          <CoinMark className="text-ink/70" />
-          <span className="flex-1 text-left">
-            <span className="block text-[14px] font-semibold">{copy.payment.stablecoin}</span>
-            <span className="block text-[11px] text-sub">{copy.payment.stablecoinSub}</span>
-          </span>
-          <Chevron className="text-ink/30" />
-        </button>
-      )}
 
       <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-sub">
         <Lock /> {copy.payment.trust}
